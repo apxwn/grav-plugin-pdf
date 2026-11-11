@@ -8,7 +8,7 @@ The latest release gets fixes. Older releases are not patched — the plugin is 
 ## Reporting a problem
 
 Please **do not** open a public issue for a security problem. Write to
-**kontakt@orthodox-dresden.de** with:
+**info@chartophylax.de** with:
 
 - the plugin version (`blueprints.yaml`, or the Admin plugin screen),
 - your Grav and PHP version,

@@ -6,7 +6,7 @@ description: "Generate a PDF of a page — a single article, or a whole collecti
 icon: file-pdf
 author:
   name: Roman Bannack
-  email: kontakt@orthodox-dresden.de
+  email: info@chartophylax.de
 homepage: https://github.com/apxwn/grav-plugin-pdf
 license: GPL-2.0-only
 readme: https://github.com/apxwn/grav-plugin-pdf/blob/main/README.md
