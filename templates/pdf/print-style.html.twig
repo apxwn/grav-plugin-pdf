@@ -1,0 +1,116 @@
+{# Print stylesheet for both document shapes.
+
+   Bare rules, with no <style> wrapper: Generator::build() hands this straight to
+   mPDF's HTMLParserMode::HEADER_CSS, which wraps it itself — and, crucially, does
+   so *before* the running header is defined. An html_* header is measured the
+   moment it is defined, so the stylesheet has to be in place first or
+   setAutoTopMargin reserves room for a logo at its natural size.
+
+   mPDF understands a subset of CSS: no flexbox, no grid, no variables and no
+   calc(). Everything here is deliberately plain for that reason. Units in mm
+   because that is what the page geometry is expressed in. #}
+    body {
+        font-family: {{ settings.font_body }};
+        font-size: {{ settings.font_size }}pt;
+        line-height: 1.45;
+        color: #1a1a1a;
+    }
+
+    /* Headings, and the titles of the document itself: the cover title, the
+       contents heading and the lines of the contents, which list the article
+       titles that are themselves <h1>s.
+
+       Nothing else changes face. In particular the running header and footer
+       are not named here: they are HTML you write, so they stay in the body font
+       — unless you put a heading of your own in them, which then follows this
+       rule like any other heading. mPDF's own default stylesheet gives the
+       contents the generic `sans-serif`, which it resolves to
+       dejavusanscondensed, so the contents has to be named here to be a choice
+       rather than an accident. */
+    h1, h2, h3, h4, h5, h6 { font-family: {{ settings.font_headings }}; }
+    .pdf-cover-title, .pdf-toc-title { font-family: {{ settings.font_headings }}; }
+    div.mpdf_toc { font-family: {{ settings.font_headings }}; }
+
+    h1 { font-size: 19pt; margin: 0 0 2mm 0; line-height: 1.25; }
+    h2 { font-size: 15pt; margin: 6mm 0 2mm 0; }
+    h3 { font-size: 13pt; margin: 5mm 0 2mm 0; }
+    h4 { font-size: 11.5pt; margin: 4mm 0 2mm 0; }
+    p { margin: 0 0 2.6mm 0; }
+    ul, ol { margin: 0 0 2.6mm 0; padding-left: 6mm; }
+    li { margin-bottom: 1.2mm; }
+    strong, b { font-weight: bold; }
+    em, i { font-style: italic; }
+    a { color: #1a1a1a; text-decoration: none; }
+    img { max-width: 100%; }
+    hr { border: none; border-top: 0.2mm solid #cccccc; margin: 4mm 0; }
+
+    blockquote {
+        margin: 0 0 3mm 5mm;
+        padding-left: 3mm;
+        border-left: 0.6mm solid #cccccc;
+        color: #444444;
+    }
+
+    table { width: 100%; border-collapse: collapse; margin-bottom: 3mm; }
+    td, th { border: 0.2mm solid #bbbbbb; padding: 1.4mm; text-align: left; }
+    th { background-color: #f2f2f2; }
+
+    /* --- cover ---------------------------------------------------------- */
+    .pdf-cover { text-align: center; }
+    .pdf-cover-logo { height: 22mm; margin-bottom: 12mm; }
+    .pdf-cover-site {
+        font-size: 11pt;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #666666;
+        margin-bottom: 48mm;
+    }
+    .pdf-cover-title {
+        font-size: 30pt;
+        font-weight: bold;
+        line-height: 1.2;
+        margin-bottom: 8mm;
+    }
+    .pdf-cover-rule {
+        border-top: 0.3mm solid #999999;
+        width: 44mm;
+        margin: 0 auto 8mm auto;
+    }
+    .pdf-cover-meta { font-size: 11pt; color: #666666; }
+
+    /* --- contents ------------------------------------------------------- */
+    .pdf-toc-title {
+        font-size: 18pt;
+        font-weight: bold;
+        margin-bottom: 7mm;
+    }
+
+    /* --- one article ---------------------------------------------------- */
+    .pdf-article { }
+    .pdf-meta {
+        font-size: 9pt;
+        color: #777777;
+        margin-bottom: 4mm;
+        padding-bottom: 2mm;
+        border-bottom: 0.2mm solid #dddddd;
+    }
+    .pdf-images { text-align: center; margin: 0 0 4mm 0; }
+    .pdf-images img { margin: 0 1mm 2mm 1mm; }
+
+    /* --- running header and footer -------------------------------------- */
+    /* Generator::furniture() wraps the header in .pdf-header. Its measured
+       height drives setAutoTopMargin, so a header that grows to several lines
+       moves the body down instead of printing over it. */
+    .pdf-header { font-size: 8pt; color: #777777; text-align: left; }
+    /* `middle` puts the logo's centre on the text line's, so text beside it sits
+       against the middle of the image rather than on its foot, which is where a
+       plain inline image lands (it is an inline image: its bottom edge is the
+       baseline). Only affects the line the image is on. */
+    .pdf-logo { height: 8mm; vertical-align: middle; }
+    .pdf-footer {
+        font-size: 9pt;
+        color: #777777;
+        text-align: center;
+        border-top: 0.2mm solid #dddddd;
+        padding-top: 1.5mm;
+    }

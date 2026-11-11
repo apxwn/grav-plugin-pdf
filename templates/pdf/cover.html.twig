@@ -1,0 +1,20 @@
+{# Cover page of a book. The running header and footer are suppressed here by
+   the `@page :first` rule the generator emits alongside this markup. #}
+<div class="pdf-cover">
+    {% if logo %}<img class="pdf-cover-logo" src="{{ logo }}" alt="" />{% endif %}
+
+    {% if document.site %}
+        <div class="pdf-cover-site">{{ document.site }}</div>
+    {% endif %}
+
+    <div class="pdf-cover-title">{{ document.title }}</div>
+    <div class="pdf-cover-rule"></div>
+
+    <div class="pdf-cover-meta">
+        {%- if document.mode == 'book' -%}
+            {{ document.count }} {{ 'PLUGIN_PDF.COVER_ITEMS'|t }} &middot; {{ document.date }}
+        {%- else -%}
+            {{ document.date }}
+        {%- endif -%}
+    </div>
+</div>

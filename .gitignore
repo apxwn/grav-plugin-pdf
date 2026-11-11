@@ -1,0 +1,16 @@
+# Nothing the plugin writes at runtime belongs in the repository.
+#
+# /cache/  rendered PDFs      — now written to Grav's own cache stream, see
+# /tmp/    mPDF's working dir    classes/Paths.php. Still listed so an older
+#                                install does not commit its leftovers.
+#
+# /logo/*  whatever the Admin file field uploaded. The folder itself is kept,
+#          because an empty one is what the field expects to find.
+#
+# vendor/ is deliberately tracked. Grav's GPM installs a plugin by downloading
+# the repository archive, so a plugin whose dependencies are not committed is
+# broken for anyone who installs it from Admin or with `bin/gpm install pdf`.
+/cache/
+/tmp/
+/logo/*
+!/logo/.gitkeep

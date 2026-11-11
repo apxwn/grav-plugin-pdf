@@ -1,0 +1,183 @@
+# Per-page section injected into every page blueprint by onBlueprintCreated().
+#
+# Every field is `toggleable`, so a page can leave the value unset and inherit it
+# from a parent page or from the plugin defaults in user/config/plugins/pdf.yaml.
+
+form:
+  fields:
+    tabs:
+      fields:
+        pdf:
+          type: tab
+          title: PLUGIN_PDF.TAB
+
+          fields:
+            pdf:
+              type: section
+              title: PLUGIN_PDF.SECTION
+              underline: true
+
+              fields:
+                header.pdf.enabled:
+                  type: toggle
+                  toggleable: true
+                  label: PLUGIN_PDF.PAGE_ENABLED
+                  help: PLUGIN_PDF.PAGE_ENABLED_HELP
+                  highlight: 1
+                  options:
+                    1: PLUGIN_ADMIN.YES
+                    0: PLUGIN_ADMIN.NO
+                  validate:
+                    type: bool
+                    required: false
+
+                header.pdf.mode:
+                  type: select
+                  toggleable: true
+                  label: PLUGIN_PDF.PAGE_MODE
+                  help: PLUGIN_PDF.PAGE_MODE_HELP
+                  options:
+                    '': PLUGIN_PDF.MODE_AUTO
+                    book: PLUGIN_PDF.MODE_BOOK
+                    article: PLUGIN_PDF.MODE_ARTICLE
+
+                header.pdf.title:
+                  type: text
+                  toggleable: true
+                  label: PLUGIN_PDF.PAGE_TITLE
+                  help: PLUGIN_PDF.PAGE_TITLE_HELP
+
+                header.pdf.date_format:
+                  type: text
+                  toggleable: true
+                  label: PLUGIN_PDF.PAGE_DATE_FORMAT
+                  help: PLUGIN_PDF.DATE_FORMAT_HELP
+
+                header.pdf.font_body:
+                  type: select
+                  toggleable: true
+                  label: PLUGIN_PDF.FONT_BODY
+                  help: PLUGIN_PDF.FONT_BODY_HELP
+                  options:
+                    dejavusans: PLUGIN_PDF.FONT_SANS
+                    dejavusanscondensed: PLUGIN_PDF.FONT_SANS_CONDENSED
+                    dejavuserif: PLUGIN_PDF.FONT_SERIF
+                    dejavuserifcondensed: PLUGIN_PDF.FONT_SERIF_CONDENSED
+
+                header.pdf.font_headings:
+                  type: select
+                  toggleable: true
+                  label: PLUGIN_PDF.FONT_HEADINGS
+                  help: PLUGIN_PDF.FONT_HEADINGS_HELP
+                  options:
+                    dejavusans: PLUGIN_PDF.FONT_SANS
+                    dejavusanscondensed: PLUGIN_PDF.FONT_SANS_CONDENSED
+                    dejavuserif: PLUGIN_PDF.FONT_SERIF
+                    dejavuserifcondensed: PLUGIN_PDF.FONT_SERIF_CONDENSED
+
+                header.pdf.cover:
+                  type: toggle
+                  toggleable: true
+                  label: PLUGIN_PDF.PAGE_COVER
+                  highlight: 1
+                  options:
+                    1: PLUGIN_ADMIN.YES
+                    0: PLUGIN_ADMIN.NO
+
+                header.pdf.toc:
+                  type: toggle
+                  toggleable: true
+                  label: PLUGIN_PDF.PAGE_TOC
+                  highlight: 1
+                  options:
+                    1: PLUGIN_ADMIN.YES
+                    0: PLUGIN_ADMIN.NO
+
+                header.pdf.toc_depth:
+                  type: select
+                  toggleable: true
+                  label: PLUGIN_PDF.PAGE_TOC_DEPTH
+                  options:
+                    1: PLUGIN_PDF.TOC_DEPTH_1
+                    2: PLUGIN_PDF.TOC_DEPTH_2
+
+                header.pdf.page_numbers:
+                  type: toggle
+                  toggleable: true
+                  label: PLUGIN_PDF.PAGE_NUMBERS_ENABLED
+                  highlight: 1
+                  options:
+                    1: PLUGIN_ADMIN.YES
+                    0: PLUGIN_ADMIN.NO
+
+                header.pdf.images:
+                  type: toggle
+                  toggleable: true
+                  label: PLUGIN_PDF.PAGE_IMAGES
+                  help: PLUGIN_PDF.PAGE_IMAGES_HELP
+                  highlight: 0
+                  options:
+                    1: PLUGIN_ADMIN.YES
+                    0: PLUGIN_ADMIN.NO
+
+                header.pdf.images_max:
+                  type: number
+                  toggleable: true
+                  label: PLUGIN_PDF.PAGE_IMAGES_MAX
+                  append: PLUGIN_PDF.IMAGES_PER_ARTICLE
+
+                header.pdf.header:
+                  type: textarea
+                  toggleable: true
+                  rows: 3
+                  label: PLUGIN_PDF.PAGE_HEADER
+                  help: PLUGIN_PDF.PAGE_HEADER_HELP
+
+                header.pdf.footer:
+                  type: textarea
+                  toggleable: true
+                  rows: 3
+                  label: PLUGIN_PDF.PAGE_FOOTER
+                  help: PLUGIN_PDF.PAGE_HEADER_HELP
+
+                header.pdf.logo:
+                  type: file
+                  toggleable: true
+                  label: PLUGIN_PDF.PAGE_LOGO
+                  help: PLUGIN_PDF.PAGE_LOGO_HELP
+                  accept: ['image/*']
+
+                header.pdf.collection:
+                  type: text
+                  toggleable: true
+                  label: PLUGIN_PDF.PAGE_COLLECTION
+                  help: PLUGIN_PDF.PAGE_COLLECTION_HELP
+
+                header.pdf.children:
+                  type: select
+                  toggleable: true
+                  label: PLUGIN_PDF.PAGE_CHILDREN
+                  help: PLUGIN_PDF.PAGE_CHILDREN_HELP
+                  options:
+                    direct: PLUGIN_PDF.CHILDREN_DIRECT
+                    descendants: PLUGIN_PDF.CHILDREN_DESCENDANTS
+
+                # The dateline is the one document setting that a single page
+                # plausibly wants differently: a listing whose articles have no
+                # author, say, or a run of pages that should show no dateline at
+                # all. The image keys are theme conventions and stay global.
+                header.pdf.meta:
+                  type: checkboxes
+                  toggleable: true
+                  use: keys
+                  label: PLUGIN_PDF.META_PARTS
+                  help: PLUGIN_PDF.META_PARTS_HELP
+                  options:
+                    date: PLUGIN_PDF.META_DATE
+                    category: PLUGIN_PDF.META_CATEGORY
+                    author: PLUGIN_PDF.META_AUTHOR
+
+                header.pdf.max_items:
+                  type: number
+                  toggleable: true
+                  label: PLUGIN_PDF.PAGE_MAX_ITEMS

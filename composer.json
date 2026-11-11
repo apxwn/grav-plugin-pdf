@@ -1,0 +1,31 @@
+{
+    "name": "apxwn/grav-plugin-pdf",
+    "description": "Generate a PDF of a single page, or of a whole page collection as a PDF book.",
+    "type": "grav-plugin",
+    "license": "GPL-2.0-only",
+    "keywords": ["grav", "plugin", "pdf", "ebook", "export", "print"],
+    "homepage": "https://github.com/apxwn/grav-plugin-pdf",
+    "authors": [
+        {
+            "name": "Roman Bannack",
+            "email": "kontakt@orthodox-dresden.de"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "mpdf/mpdf": "^8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Grav\\Plugin\\Pdf\\": "classes/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "platform": {
+            "php": "8.3"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest a setting, a different document layout, or a new kind of output.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What can the plugin not do today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: How should it behave?
+      description: A setting name, a short YAML example, or a description of the printed page all help.
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What do you do instead at the moment?
+
+  - type: markdown
+    attributes:
+      value: |
+        One thing to keep in mind: the plugin is theme-independent on purpose. A default that
+        names a particular theme's templates, frontmatter keys or assets is a setting here,
+        not a built-in — otherwise a theme update could change what the plugin renders.

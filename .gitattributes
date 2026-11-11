@@ -1,0 +1,11 @@
+# `vendor/` is shipped on purpose — GPM and the release archive install from this
+# repository — but it is not this project's code, so GitHub's language statistics
+# should not count it.
+/vendor/** linguist-vendored
+
+# Files that only matter in the repository, not in a source archive. The release
+# archive is built by build-release.sh, which has its own exclusion list.
+/.github export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/build-release.sh export-ignore

@@ -1,0 +1,20 @@
+{# One article. Included by book.html.twig, once per entry. #}
+<article class="pdf-article">
+    {# The only <h1> in the document, so the table of contents and the PDF
+       bookmarks list article titles and nothing else. #}
+    <h1>{{ entry.title }}</h1>
+
+    {% if entry.meta %}
+        <div class="pdf-meta">{{ entry.meta }}</div>
+    {% endif %}
+
+    {% if entry.images is not empty %}
+        <div class="pdf-images">
+            {% for image in entry.images %}
+                <img src="{{ image }}" alt="" />
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {{ entry.content|raw }}
+</article>

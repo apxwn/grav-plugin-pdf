@@ -1,0 +1,213 @@
+# PDF plugin configuration.
+#
+# Everything here can be overridden per page, and the plugin ships enabled but
+# inert: no page produces a PDF until that page (or one of its parents, see
+# `inherit`) sets its own `pdf:` frontmatter — or until you turn on `all_pages`.
+# So nothing about an existing site changes until you ask for it.
+
+enabled: true
+
+# Master switch for the whole site. With this off no page is exportable, even one
+# whose frontmatter asks for a PDF.
+# (Note: `enabled` is also the Grav plugin switch. Setting it to false in
+# user/config/plugins/pdf.yaml stops the plugin loading entirely.)
+
+# Let a page inherit `pdf:` settings from its parent pages. With this on, adding
+# `pdf: { enabled: true }` to a blog listing also enables every article in it.
+inherit: true
+
+# Export every page, whether or not its frontmatter says so. Off by default:
+# pages opt in individually with `pdf: { enabled: true }`.
+all_pages: false
+
+# --- the document -----------------------------------------------------------
+
+# A book gets a cover page and, if `toc` is on, a table of contents.
+# A single article gets neither.
+cover: true
+toc: true
+
+# Table of contents / bookmark depth: 1 = article titles only, 2 = also H2.
+toc_depth: 1
+
+# Page numbers in the footer of every page (off the cover, which is unnumbered).
+page_numbers: true
+
+# How any date the plugin prints is formatted — the dateline under each article
+# title, the date on the cover and the {TODAY} token. This is separate from
+# system.pages.dateformat.default, which is the format Grav *parses* frontmatter
+# dates with (and which defaults to 'Y-m-d H:i', which reads badly in print).
+date_format: 'Y-m-d'
+
+# Overrides the title used on the cover and in the PDF metadata.
+# Empty means "use the page title".
+title: ''
+
+# --- running header and footer ----------------------------------------------
+#
+# HTML, rendered by mPDF on every page (except the cover of a book). Tokens:
+#
+#   {LOGO}    the logo below as an <img>
+#   {SITE}    the site title from user/config/site.yaml
+#   {TITLE}   the document title (see `title` above)
+#   {TODAY}   the date the PDF was generated, in `date_format`
+#   {PAGENO}  the current page number
+#   {NBPG}    the total number of pages
+#
+# Wrapped in .pdf-header — 8pt, grey, left-aligned, text beside {LOGO} centred on
+# it. A header taller than the room margin_top leaves below margin_header grows the
+# top margin to fit rather than printing over the body.
+#
+# Leave the footer empty to get the default "{PAGENO} / {NBPG}" whenever
+# `page_numbers` is on. A footer you write yourself is used exactly as written.
+
+header: '{LOGO}'
+footer: ''
+
+# The logo for the {LOGO} token, and the cover mark.
+#
+# Either a path — 'theme://images/logo.svg', 'user://images/logo.png',
+# 'user/themes/my-theme/images/logo.png' — or left to the Admin, whose file field
+# stores a list of file descriptors here and uploads into user/plugins/pdf/logo/.
+# Both are read. When nothing is set, or nothing that is set exists, the document
+# simply has no logo.
+logo: ''
+
+# --- images -----------------------------------------------------------------
+#
+# Off by default: the PDF is text. Enable per page with `pdf: { images: true }`,
+# or here to enable it everywhere.
+
+images: false
+images_max: 20      # per article
+images_width: 1200  # px; larger images are scaled down before embedding
+images_quality: 75  # JPEG quality for those scaled copies
+
+# Which frontmatter keys the images come from. Every theme names these
+# differently, so nothing is assumed:
+#
+#   image_field       a header key holding one leading image, e.g. 'featuredImage'
+#   image_skip_field  a header key holding an image to leave out, e.g. an avatar
+#   gallery_field     a header key that, when true, means "every image on the page"
+#
+# With image_field empty, the first page image is used, skipping the one
+# image_skip_field names. Page images honour `media_order`, and any image inside
+# the body text is added last.
+image_field: ''
+image_skip_field: ''
+gallery_field: 'gallery'
+
+# --- the dateline -----------------------------------------------------------
+#
+# The line under each article title. List the parts you want, in order, from
+# `date`, `category` and `author`; leave the list empty for no dateline at all.
+# A part with nothing to print is dropped, so an article without a category
+# simply shows the rest.
+#
+# Admin writes this as a map of the checked parts (`date: 1`), and the plugin
+# reads both shapes, so either can be written by hand:
+#
+#   meta: {date: 1, category: 1, author: 1}
+#   meta: [date, category, author]
+
+meta:
+  date: 1
+  category: 1
+  author: 1
+
+# The taxonomy to read categories from (standard Grav taxonomy) ...
+meta_category_taxonomy: category
+
+# ... and the frontmatter key holding the author's name. A dotted path works, so
+# a site that nests it can use e.g. 'author.name'. A list at that key is ignored
+# on purpose: it usually holds the account that created the page.
+meta_author_field: author
+
+# --- content ----------------------------------------------------------------
+
+# The page header that holds the collection definition to build a book from.
+collection: content
+
+# Fallback when a page has no collection: direct = child pages only,
+# descendants = the whole subtree.
+children: direct
+
+# Shortcodes whose plugin is not installed render as literal text. Listing them
+# here removes that text from the PDF, e.g. ['gallery', 'carousel'].
+strip_shortcodes: []
+
+# --- layout -----------------------------------------------------------------
+
+paper: A4
+orientation: P     # P = portrait, L = landscape
+font_size: 11
+
+# The typeface of the text, and of the headings — h1–h6 plus the document's own
+# titles (the cover, the contents heading and the lines of the contents). Both
+# are one of the DejaVu faces mPDF carries, so nothing is downloaded and no font
+# file is added:
+#
+#   dejavusans   dejavusanscondensed   dejavuserif   dejavuserifcondensed
+#
+# Headings default to the face of the body. The running header and footer are
+# HTML you write: they stay in the body font, unless you put a heading in them,
+# which then follows `font_headings` like any other heading. A name the plugin
+# does not know falls back to dejavusans.
+font_body: dejavusans
+font_headings: dejavusans
+
+# Fonts of your own. Put the .ttf files anywhere readable — `user/data/pdf/fonts`
+# is a reasonable place — point `font_dir` at that folder, and describe each
+# family here. R, B, I and BI are regular, bold, italic and bold-italic; only R
+# is required. A value is a file name inside `font_dir`, or a path of its own
+# (absolute, a `stream://`, or relative to the Grav root) for a font that lives
+# elsewhere. Both fonts above and these can be used in `font_body` and
+# `font_headings`.
+#
+# font_dir: 'user-data://pdf/fonts'
+# fonts:
+#   myfont:
+#     R: MyFont-Regular.ttf
+#     B: MyFont-Bold.ttf
+#     I: MyFont-Italic.ttf
+#     BI: MyFont-BoldItalic.ttf
+font_dir: ''
+fonts: []
+
+margin_top: 25
+margin_bottom: 20
+margin_left: 18
+margin_right: 18
+margin_header: 12
+margin_footer: 8
+
+# --- cache and guards -------------------------------------------------------
+#
+# Generated documents are keyed on the content that produced them, so an edit
+# anywhere invalidates them by itself. cache_ttl is only a backstop for changes
+# the fingerprint cannot see, such as a template edit.
+#
+# They live in Grav's own cache directory (cache/pdf), which is emptied by
+# `bin/grav clear-cache`. cache_path moves them elsewhere; a stream, an absolute
+# path or a Grav-root-relative path all work, and mPDF's working files follow
+# them into a tmp/ subfolder.
+
+cache: true
+cache_ttl: 86400   # seconds; 0 = never expire
+cache_path: ''     # empty = cache/pdf in Grav's cache directory
+
+# Refuse to build a book larger than this (0 = no limit). A 500-article book is
+# already a very slow request, and this stops a mistake from becoming an outage.
+max_items: 500
+
+# Put the number of articles into the button caption (%count% in the labels).
+# Costs one extra collection build on every page render, so it is off by default.
+show_count: false
+
+# --- button labels ----------------------------------------------------------
+#
+# Override the translated captions from languages.yaml. %count% is replaced when
+# show_count is on. Empty means "use the translation".
+
+book_label: ''
+article_label: ''

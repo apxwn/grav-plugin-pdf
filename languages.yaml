@@ -1,0 +1,422 @@
+# Translations for the Admin screens.
+#
+# Keys used by blueprints.yaml (plugin settings) come first in each language
+# block, then the keys used by blueprints/pdf.yaml (the per-page tab).
+#
+# Contributions welcome: copy a block, translate the values, and change nothing
+# else. Keys that are missing fall back to English, so a partial translation is
+# perfectly usable.
+
+en:
+  PLUGIN_PDF:
+    TAB: PDF
+    SECTION: PDF export
+    TOC: Contents
+    COVER_ITEMS: articles
+
+    INHERIT: Inherit from parent pages
+    INHERIT_HELP: "Let a page inherit pdf: settings from its parents. This is what lets a listing switch on every article in it."
+    ALL_PAGES: Export every page
+    ALL_PAGES_HELP: "Off by default: a page opts in with pdf: { enabled: true } in its frontmatter."
+
+    DOCUMENT: Document
+    COVER: Cover page
+    COVER_HELP: "A book starts with a cover page. A single article never gets one."
+    TOC_ENABLED: Table of contents
+    TOC_ENABLED_HELP: "A book gets a table of contents after the cover. A single article never gets one."
+    TOC_DEPTH: Contents depth
+    TOC_DEPTH_1: "Article titles only"
+    TOC_DEPTH_2: "Article titles and headings within articles"
+    PAGE_NUMBERS: Page numbers
+    PAGE_NUMBERS_HELP: "Numbered footer on every page except the cover."
+    DOC_TITLE: Title
+    DOC_TITLE_HELP: "Used on the cover and in the PDF metadata. Empty means the page title."
+    DATE_FORMAT: Date format
+    DATE_FORMAT_HELP: "PHP date() format for every date the plugin prints: the dateline under each article title, the cover date and {TODAY}. E.g. d.m.Y."
+
+    FURNITURE: Running header and footer
+    HEADER: Header
+    FOOTER: Footer
+    HEADER_HELP: "HTML. Tokens: {LOGO} {SITE} {TITLE} {TODAY} {PAGENO} {NBPG}"
+    LOGO: Logo
+    LOGO_HELP: "A path to an image — theme://images/logo.svg, user://images/logo.png — or an upload, which is stored in user/plugins/pdf/logo/. Used by the {LOGO} token. Leave empty for no logo."
+
+    IMAGES: Images
+    IMAGES_ENABLED: Include images
+    IMAGES_ENABLED_HELP: "Off by default: the PDF is text only. Turn this on to embed the leading image, the gallery and images inside the text."
+    IMAGES_MAX: Maximum images
+    IMAGES_PER_ARTICLE: per article
+    IMAGES_WIDTH: Maximum width
+    PIXELS: px
+    IMAGES_QUALITY: JPEG quality
+    IMAGE_FIELD: Leading image field
+    IMAGE_FIELD_HELP: "The page header that holds the image to lead with, e.g. featuredImage. Empty uses the first page image."
+    IMAGE_SKIP_FIELD: Skipped image field
+    IMAGE_SKIP_FIELD_HELP: "The page header naming an image to leave out, e.g. author.avatarImage. Useful when the first page image is an avatar."
+    GALLERY_FIELD: Gallery field
+    GALLERY_FIELD_HELP: "The page header that, when true, means \"use every image on the page\". Empty disables gallery detection."
+
+    META: Dateline
+    META_PARTS: Parts of the dateline
+    META_PARTS_HELP: "The line under each article title, in the order listed. A part with nothing to print is left out."
+    META_DATE: Date
+    META_CATEGORY: Category
+    META_AUTHOR: Author
+    META_TAXONOMY: Category taxonomy
+    META_TAXONOMY_HELP: "Which taxonomy the category is read from. Standard Grav uses 'category'."
+    META_AUTHOR_FIELD: Author field
+    META_AUTHOR_FIELD_HELP: "The page header holding the author's name. A dotted path works, e.g. author.name. A list at that key is ignored."
+
+    CONTENT: Content
+    COLLECTION: Collection header
+    COLLECTION_HELP: "The page header holding the collection to build a book from."
+    CHILDREN: Without a collection
+    CHILDREN_HELP: "What to use when the page has no collection at all."
+    CHILDREN_DIRECT: Direct children only
+    CHILDREN_DESCENDANTS: The whole subtree
+    STRIP_SHORTCODES: Remove these shortcodes
+    STRIP_SHORTCODES_HELP: "Shortcodes whose plugin is not installed would otherwise appear as literal text in the PDF."
+    STRIP_SHORTCODES_PLACEHOLDER: "shortcode name"
+
+    LAYOUT: Layout
+    PAPER: Paper size
+    ORIENTATION: Orientation
+    PORTRAIT: Portrait
+    LANDSCAPE: Landscape
+    FONT_SIZE: Font size
+    POINTS: pt
+    FONT_BODY: Body font
+    FONT_BODY_HELP: "The text, the tables, the dateline and the running header and footer. One of the four DejaVu faces mPDF carries, or a family you added with Font directory."
+    FONT_HEADINGS: Heading font
+    FONT_HEADINGS_HELP: "Headings h1–h6 and the document's own titles: the cover title, the contents heading and its lines. The running header and footer keep the body font, unless you write a heading in their HTML."
+    FONT_SANS: Sans — DejaVu Sans
+    FONT_SANS_CONDENSED: Sans condensed — DejaVu Sans Condensed
+    FONT_SERIF: Serif — DejaVu Serif
+    FONT_SERIF_CONDENSED: Serif condensed — DejaVu Serif Condensed
+    FONT_DIR: Font directory
+    FONT_DIR_HELP: "Where your own .ttf files live, e.g. user-data://pdf/fonts. Each family is read from its file names: MyFont-Regular.ttf, MyFont-Bold.ttf, MyFont-Italic.ttf, MyFont-BoldItalic.ttf. Then set Body font or Heading font to myfont."
+    MARGINS: Margins
+    MARGIN_TOP: Top
+    MARGIN_BOTTOM: Bottom
+    MARGIN_LEFT: Left
+    MARGIN_RIGHT: Right
+    MARGIN_HEADER: Header
+    MARGIN_FOOTER: Footer
+
+    ADVANCED: Advanced
+    CACHE: Cache generated PDFs
+    CACHE_TTL: Cache lifetime
+    SECONDS: seconds
+    CACHE_PATH: Cache directory
+    CACHE_PATH_HELP: "Empty uses cache/pdf in Grav's cache directory, which bin/grav clear-cache empties. A stream, an absolute path or a Grav-relative path all work."
+    MAX_ITEMS: Maximum articles in a book
+    MAX_ITEMS_HELP: "0 means no limit."
+    SHOW_COUNT: Add the article count to the button caption
+    SHOW_COUNT_HELP: "The %count% placeholder. Costs an extra collection build on every page render."
+    BOOK_LABEL: Button caption for a book
+    ARTICLE_LABEL: Button caption for an article
+    LABEL_HELP: "Empty uses the translation. %count% is the number of articles."
+
+    PAGE_ENABLED: Offer a PDF of this page
+    PAGE_ENABLED_HELP: "Nothing is generated or linked until this is on."
+    PAGE_MODE: "Treat this page as"
+    PAGE_MODE_HELP: "By default a page that holds a collection becomes a book, everything else a single article."
+    MODE_AUTO: "Automatic"
+    MODE_BOOK: "A book (cover, contents, one article per item)"
+    MODE_ARTICLE: "A single article"
+    PAGE_TITLE: Title
+    PAGE_TITLE_HELP: "Used on the cover and in the PDF metadata."
+    PAGE_DATE_FORMAT: Date format
+    PAGE_COVER: Cover page
+    PAGE_TOC: Table of contents
+    PAGE_TOC_DEPTH: Contents depth
+    PAGE_NUMBERS_ENABLED: Page numbers
+    PAGE_IMAGES: Include images
+    PAGE_IMAGES_HELP: "Off keeps the PDF text only."
+    PAGE_IMAGES_MAX: Maximum images
+    PAGE_HEADER: Header
+    PAGE_FOOTER: Footer
+    PAGE_HEADER_HELP: "HTML. Tokens: {LOGO} {SITE} {TITLE} {TODAY} {PAGENO} {NBPG}"
+    PAGE_LOGO: Logo
+    PAGE_LOGO_HELP: "Empty uses the plugin setting."
+    PAGE_COLLECTION: Collection header
+    PAGE_COLLECTION_HELP: "The page header holding the collection to build a book from."
+    PAGE_CHILDREN: Without a collection
+    PAGE_CHILDREN_HELP: "What to use when this page has no collection."
+    PAGE_MAX_ITEMS: Maximum articles
+
+de:
+  PLUGIN_PDF:
+    TAB: PDF
+    SECTION: PDF-Export
+    TOC: Inhalt
+    COVER_ITEMS: Artikel
+
+    INHERIT: Von übergeordneten Seiten erben
+    INHERIT_HELP: "Eine Seite übernimmt die pdf:-Einstellungen ihrer übergeordneten Seiten. Dadurch genügt es, eine Rubrik einzuschalten, um alle ihre Artikel mit einzuschalten."
+    ALL_PAGES: Jede Seite exportieren
+    ALL_PAGES_HELP: "Standardmäßig aus: eine Seite schaltet sich mit pdf: { enabled: true } im eigenen Frontmatter ein."
+
+    DOCUMENT: Dokument
+    COVER: Deckblatt
+    COVER_HELP: "Ein Buch beginnt mit einem Deckblatt. Ein einzelner Artikel bekommt keines."
+    TOC_ENABLED: Inhaltsverzeichnis
+    TOC_ENABLED_HELP: "Ein Buch bekommt nach dem Deckblatt ein Inhaltsverzeichnis. Ein einzelner Artikel bekommt keines."
+    TOC_DEPTH: Tiefe des Inhaltsverzeichnisses
+    TOC_DEPTH_1: "Nur Artikeltitel"
+    TOC_DEPTH_2: "Artikeltitel und Überschriften innerhalb der Artikel"
+    PAGE_NUMBERS: Seitenzahlen
+    PAGE_NUMBERS_HELP: "Seitenzahlen in der Fußzeile, außer auf dem Deckblatt."
+    DOC_TITLE: Titel
+    DOC_TITLE_HELP: "Für Deckblatt und PDF-Metadaten. Leer bedeutet: der Seitentitel."
+    DATE_FORMAT: Datumsformat
+    DATE_FORMAT_HELP: "Format für date() bei allen Datumsangaben: die Datumszeile unter jedem Artikeltitel, das Datum auf dem Deckblatt und {TODAY}. Z. B. d.m.Y."
+
+    FURNITURE: Kopf- und Fußzeile
+    HEADER: Kopfzeile
+    FOOTER: Fußzeile
+    HEADER_HELP: "HTML. Platzhalter: {LOGO} {SITE} {TITLE} {TODAY} {PAGENO} {NBPG}"
+    LOGO: Logo
+    LOGO_HELP: "Ein Pfad zu einem Bild — theme://images/logo.svg, user://images/logo.png — oder ein Upload, der in user/plugins/pdf/logo/ liegt. Wird vom Platzhalter {LOGO} verwendet. Leer lassen für ein Dokument ohne Logo."
+
+    IMAGES: Bilder
+    IMAGES_ENABLED: Bilder einbinden
+    IMAGES_ENABLED_HELP: "Standardmäßig aus: das PDF enthält nur Text. Eingeschaltet werden Beitragsbild, Galerie und Bilder im Text eingebettet."
+    IMAGES_MAX: Höchstzahl an Bildern
+    IMAGES_PER_ARTICLE: pro Artikel
+    IMAGES_WIDTH: Maximale Breite
+    PIXELS: px
+    IMAGES_QUALITY: JPEG-Qualität
+    IMAGE_FIELD: Feld für das Beitragsbild
+    IMAGE_FIELD_HELP: "Der Seiten-Header mit dem vorangestellten Bild, z. B. featuredImage. Leer verwendet das erste Bild der Seite."
+    IMAGE_SKIP_FIELD: Zu übergehendes Bildfeld
+    IMAGE_SKIP_FIELD_HELP: "Der Seiten-Header, der ein auszulassendes Bild benennt, z. B. author.avatarImage. Nützlich, wenn das erste Bild der Seite ein Porträt ist."
+    GALLERY_FIELD: Galerie-Feld
+    GALLERY_FIELD_HELP: "Der Seiten-Header, der — wenn gesetzt — alle Bilder der Seite einbindet. Leer schaltet die Galerieerkennung ab."
+
+    META: Datumszeile
+    META_PARTS: Bestandteile der Datumszeile
+    META_PARTS_HELP: "Die Zeile unter jedem Artikeltitel, in der angegebenen Reihenfolge. Bestandteile ohne Inhalt entfallen."
+    META_DATE: Datum
+    META_CATEGORY: Kategorie
+    META_AUTHOR: Autor
+    META_TAXONOMY: Taxonomie der Kategorie
+    META_TAXONOMY_HELP: "Aus welcher Taxonomie die Kategorie gelesen wird. Grav verwendet standardmäßig 'category'."
+    META_AUTHOR_FIELD: Autorenfeld
+    META_AUTHOR_FIELD_HELP: "Der Seiten-Header mit dem Namen des Autors. Ein Punktpfad ist möglich, z. B. author.name. Eine Liste unter diesem Schlüssel wird ignoriert."
+
+    CONTENT: Inhalt
+    COLLECTION: Collection-Header
+    COLLECTION_HELP: "Der Seiten-Header mit der Collection, aus der ein Buch gebaut wird."
+    CHILDREN: Ohne Collection
+    CHILDREN_HELP: "Was verwendet wird, wenn die Seite keine Collection besitzt."
+    CHILDREN_DIRECT: Nur direkte Unterseiten
+    CHILDREN_DESCENDANTS: Der gesamte Teilbaum
+    STRIP_SHORTCODES: Diese Shortcodes entfernen
+    STRIP_SHORTCODES_HELP: "Shortcodes ohne zugehöriges Plugin würden sonst als reiner Text im PDF erscheinen."
+    STRIP_SHORTCODES_PLACEHOLDER: "Name des Shortcodes"
+
+    LAYOUT: Layout
+    PAPER: Papierformat
+    ORIENTATION: Ausrichtung
+    PORTRAIT: Hochformat
+    LANDSCAPE: Querformat
+    FONT_SIZE: Schriftgröße
+    POINTS: pt
+    FONT_BODY: Grundschrift
+    FONT_BODY_HELP: "Der Text, die Tabellen, die Datumszeile sowie Kopf- und Fußzeile. Einer der vier DejaVu-Schnitte von mPDF oder eine eigene Schrift aus dem Schriftverzeichnis."
+    FONT_HEADINGS: Schrift der Überschriften
+    FONT_HEADINGS_HELP: "Überschriften h1–h6 und die Titel des Dokuments: Deckblatt-Titel, Inhaltsüberschrift und deren Zeilen. Kopf- und Fußzeile behalten die Grundschrift, sofern Sie dort keine Überschrift schreiben."
+    FONT_SANS: Serifenlos — DejaVu Sans
+    FONT_SANS_CONDENSED: Serifenlos schmal — DejaVu Sans Condensed
+    FONT_SERIF: Serif — DejaVu Serif
+    FONT_SERIF_CONDENSED: Serif schmal — DejaVu Serif Condensed
+    FONT_DIR: Schriftverzeichnis
+    FONT_DIR_HELP: "Wo Ihre eigenen .ttf-Dateien liegen, z. B. user-data://pdf/fonts. Die Familie ergibt sich aus den Dateinamen: MyFont-Regular.ttf, MyFont-Bold.ttf, MyFont-Italic.ttf, MyFont-BoldItalic.ttf. Dann Grund- oder Überschriftenschrift auf myfont setzen."
+    MARGINS: Seitenränder
+    MARGIN_TOP: Oben
+    MARGIN_BOTTOM: Unten
+    MARGIN_LEFT: Links
+    MARGIN_RIGHT: Rechts
+    MARGIN_HEADER: Kopfzeile
+    MARGIN_FOOTER: Fußzeile
+
+    ADVANCED: Erweitert
+    CACHE: Erzeugte PDFs zwischenspeichern
+    CACHE_TTL: Lebensdauer des Zwischenspeichers
+    SECONDS: Sekunden
+    CACHE_PATH: Verzeichnis des Zwischenspeichers
+    CACHE_PATH_HELP: "Leer verwendet cache/pdf im Cache-Verzeichnis von Grav, das bin/grav clear-cache leert. Ein Stream, ein absoluter Pfad oder ein Pfad relativ zum Grav-Verzeichnis sind möglich."
+    MAX_ITEMS: Höchstzahl an Artikeln in einem Buch
+    MAX_ITEMS_HELP: "0 bedeutet: keine Grenze."
+    SHOW_COUNT: Anzahl der Artikel in die Schaltflächenbeschriftung aufnehmen
+    SHOW_COUNT_HELP: "Der Platzhalter %count%. Kostet einen zusätzlichen Collection-Aufbau bei jedem Seitenaufruf."
+    BOOK_LABEL: Beschriftung der Schaltfläche für ein Buch
+    ARTICLE_LABEL: Beschriftung der Schaltfläche für einen Artikel
+    LABEL_HELP: "Leer verwendet die Übersetzung. %count% ist die Anzahl der Artikel."
+
+    PAGE_ENABLED: PDF für diese Seite anbieten
+    PAGE_ENABLED_HELP: "Solange dies aus ist, wird nichts erzeugt und nicht verlinkt."
+    PAGE_MODE: "Diese Seite behandeln als"
+    PAGE_MODE_HELP: "Standardmäßig wird eine Seite mit Collection zum Buch, alles andere zu einem einzelnen Artikel."
+    MODE_AUTO: "Automatisch"
+    MODE_BOOK: "Ein Buch (Deckblatt, Inhalt, ein Artikel pro Eintrag)"
+    MODE_ARTICLE: "Ein einzelner Artikel"
+    PAGE_TITLE: Titel
+    PAGE_TITLE_HELP: "Für Deckblatt und PDF-Metadaten."
+    PAGE_DATE_FORMAT: Datumsformat
+    PAGE_COVER: Deckblatt
+    PAGE_TOC: Inhaltsverzeichnis
+    PAGE_TOC_DEPTH: Tiefe des Inhaltsverzeichnisses
+    PAGE_NUMBERS_ENABLED: Seitenzahlen
+    PAGE_IMAGES: Bilder einbinden
+    PAGE_IMAGES_HELP: "Aus lässt das PDF nur Text enthalten."
+    PAGE_IMAGES_MAX: Höchstzahl an Bildern
+    PAGE_HEADER: Kopfzeile
+    PAGE_FOOTER: Fußzeile
+    PAGE_HEADER_HELP: "HTML. Platzhalter: {LOGO} {SITE} {TITLE} {TODAY} {PAGENO} {NBPG}"
+    PAGE_LOGO: Logo
+    PAGE_LOGO_HELP: "Leer verwendet die Plugin-Einstellung."
+    PAGE_COLLECTION: Collection-Header
+    PAGE_COLLECTION_HELP: "Der Seiten-Header mit der Collection, aus der ein Buch gebaut wird."
+    PAGE_CHILDREN: Ohne Collection
+    PAGE_CHILDREN_HELP: "Was verwendet wird, wenn diese Seite keine Collection besitzt."
+    PAGE_MAX_ITEMS: Höchstzahl an Artikeln
+
+ru:
+  PLUGIN_PDF:
+    TAB: PDF
+    SECTION: Экспорт в PDF
+    TOC: Содержание
+    COVER_ITEMS: статей
+
+    INHERIT: Наследовать от родительских страниц
+    INHERIT_HELP: "Страница наследует настройки pdf: от родительских страниц. Достаточно включить раздел, чтобы включились и все его статьи."
+    ALL_PAGES: Экспортировать все страницы
+    ALL_PAGES_HELP: "По умолчанию выключено: страница включается через pdf: { enabled: true } в её заголовке."
+
+    DOCUMENT: Документ
+    COVER: Титульная страница
+    COVER_HELP: "Книга начинается с титульной страницы. У отдельной статьи её нет."
+    TOC_ENABLED: Оглавление
+    TOC_ENABLED_HELP: "После титульной страницы книги идёт оглавление. У отдельной статьи его нет."
+    TOC_DEPTH: Глубина оглавления
+    TOC_DEPTH_1: "Только заголовки статей"
+    TOC_DEPTH_2: "Заголовки статей и подзаголовки внутри них"
+    PAGE_NUMBERS: Номера страниц
+    PAGE_NUMBERS_HELP: "Нумерация в нижнем колонтитуле, кроме титульной страницы."
+    DOC_TITLE: Название
+    DOC_TITLE_HELP: "Для титульной страницы и метаданных PDF. Пусто — название страницы."
+    DATE_FORMAT: Формат даты
+    DATE_FORMAT_HELP: "Формат date() для всех дат: строка под заголовком статьи, дата на титульной странице и {TODAY}. Например d.m.Y."
+
+    FURNITURE: Верхний и нижний колонтитулы
+    HEADER: Верхний колонтитул
+    FOOTER: Нижний колонтитул
+    HEADER_HELP: "HTML. Подстановки: {LOGO} {SITE} {TITLE} {TODAY} {PAGENO} {NBPG}"
+    LOGO: Логотип
+    LOGO_HELP: "Путь к изображению — theme://images/logo.svg, user://images/logo.png — либо загруженный файл в user/plugins/pdf/logo/. Используется подстановкой {LOGO}. Оставьте пустым, чтобы документ был без логотипа."
+
+    IMAGES: Изображения
+    IMAGES_ENABLED: Включать изображения
+    IMAGES_ENABLED_HELP: "По умолчанию выключено: PDF содержит только текст. При включении добавляются главное изображение, галерея и изображения из текста."
+    IMAGES_MAX: Максимум изображений
+    IMAGES_PER_ARTICLE: на статью
+    IMAGES_WIDTH: Максимальная ширина
+    PIXELS: пикс.
+    IMAGES_QUALITY: Качество JPEG
+    IMAGE_FIELD: Поле главного изображения
+    IMAGE_FIELD_HELP: "Заголовок страницы с главным изображением, например featuredImage. Пусто — первое изображение страницы."
+    IMAGE_SKIP_FIELD: Пропускаемое поле изображения
+    IMAGE_SKIP_FIELD_HELP: "Заголовок страницы, называющий изображение, которое нужно пропустить, например author.avatarImage. Полезно, если первое изображение страницы — портрет."
+    GALLERY_FIELD: Поле галереи
+    GALLERY_FIELD_HELP: "Заголовок страницы, который при значении «истина» означает «все изображения страницы». Пусто отключает определение галереи."
+
+    META: Строка с датой
+    META_PARTS: Части строки с датой
+    META_PARTS_HELP: "Строка под заголовком каждой статьи, в указанном порядке. Части без содержимого опускаются."
+    META_DATE: Дата
+    META_CATEGORY: Категория
+    META_AUTHOR: Автор
+    META_TAXONOMY: Таксономия категории
+    META_TAXONOMY_HELP: "Из какой таксономии берётся категория. В Grav по умолчанию 'category'."
+    META_AUTHOR_FIELD: Поле автора
+    META_AUTHOR_FIELD_HELP: "Заголовок страницы с именем автора. Допускается путь с точками, например author.name. Список в этом ключе игнорируется."
+
+    CONTENT: Содержание
+    COLLECTION: Заголовок коллекции
+    COLLECTION_HELP: "Заголовок страницы с коллекцией, из которой строится книга."
+    CHILDREN: Если коллекции нет
+    CHILDREN_HELP: "Что использовать, если у страницы нет коллекции."
+    CHILDREN_DIRECT: Только непосредственные подстраницы
+    CHILDREN_DESCENDANTS: Всё поддерево
+    STRIP_SHORTCODES: Удалить эти шорткоды
+    STRIP_SHORTCODES_HELP: "Шорткоды без установленного плагина иначе попали бы в PDF как обычный текст."
+    STRIP_SHORTCODES_PLACEHOLDER: "имя шорткода"
+
+    LAYOUT: Макет
+    PAPER: Формат бумаги
+    ORIENTATION: Ориентация
+    PORTRAIT: Книжная
+    LANDSCAPE: Альбомная
+    FONT_SIZE: Размер шрифта
+    POINTS: пт
+    FONT_BODY: Шрифт текста
+    FONT_BODY_HELP: "Текст, таблицы, строка с датой, а также верхний и нижний колонтитулы. Один из четырёх шрифтов DejaVu, входящих в mPDF, или свой шрифт из каталога шрифтов."
+    FONT_HEADINGS: Шрифт заголовков
+    FONT_HEADINGS_HELP: "Заголовки h1–h6 и названия самого документа: титульная страница, заголовок оглавления и его строки. Верхний и нижний колонтитулы остаются в шрифте текста, если вы не впишете туда заголовок."
+    FONT_SANS: Без засечек — DejaVu Sans
+    FONT_SANS_CONDENSED: Без засечек узкий — DejaVu Sans Condensed
+    FONT_SERIF: С засечками — DejaVu Serif
+    FONT_SERIF_CONDENSED: С засечками узкий — DejaVu Serif Condensed
+    FONT_DIR: Каталог шрифтов
+    FONT_DIR_HELP: "Где лежат ваши файлы .ttf, например user-data://pdf/fonts. Семейство определяется по именам файлов: MyFont-Regular.ttf, MyFont-Bold.ttf, MyFont-Italic.ttf, MyFont-BoldItalic.ttf. Затем укажите myfont в шрифте текста или заголовков."
+    MARGINS: Поля
+    MARGIN_TOP: Сверху
+    MARGIN_BOTTOM: Снизу
+    MARGIN_LEFT: Слева
+    MARGIN_RIGHT: Справа
+    MARGIN_HEADER: Колонтитул сверху
+    MARGIN_FOOTER: Колонтитул снизу
+
+    ADVANCED: Дополнительно
+    CACHE: Кэшировать созданные PDF
+    CACHE_TTL: Время жизни кэша
+    SECONDS: секунд
+    CACHE_PATH: Каталог кэша
+    CACHE_PATH_HELP: "Пусто — cache/pdf в каталоге кэша Grav, который очищает bin/grav clear-cache. Допустимы поток, абсолютный путь или путь относительно корня Grav."
+    MAX_ITEMS: Максимум статей в книге
+    MAX_ITEMS_HELP: "0 — без ограничений."
+    SHOW_COUNT: Добавлять число статей в надпись на кнопке
+    SHOW_COUNT_HELP: "Подстановка %count%. Требует дополнительного построения коллекции при каждом показе страницы."
+    BOOK_LABEL: Надпись на кнопке для книги
+    ARTICLE_LABEL: Надпись на кнопке для статьи
+    LABEL_HELP: "Пусто — используется перевод. %count% — число статей."
+
+    PAGE_ENABLED: Предлагать PDF этой страницы
+    PAGE_ENABLED_HELP: "Пока это выключено, ничего не создаётся и не ссылается."
+    PAGE_MODE: "Считать эту страницу"
+    PAGE_MODE_HELP: "По умолчанию страница с коллекцией становится книгой, всё остальное — отдельной статьёй."
+    MODE_AUTO: "Автоматически"
+    MODE_BOOK: "Книгой (обложка, оглавление, по статье на элемент)"
+    MODE_ARTICLE: "Отдельной статьёй"
+    PAGE_TITLE: Название
+    PAGE_TITLE_HELP: "Для титульной страницы и метаданных PDF."
+    PAGE_DATE_FORMAT: Формат даты
+    PAGE_COVER: Титульная страница
+    PAGE_TOC: Оглавление
+    PAGE_TOC_DEPTH: Глубина оглавления
+    PAGE_NUMBERS_ENABLED: Номера страниц
+    PAGE_IMAGES: Включать изображения
+    PAGE_IMAGES_HELP: "Выключено — PDF содержит только текст."
+    PAGE_IMAGES_MAX: Максимум изображений
+    PAGE_HEADER: Верхний колонтитул
+    PAGE_FOOTER: Нижний колонтитул
+    PAGE_HEADER_HELP: "HTML. Подстановки: {LOGO} {SITE} {TITLE} {TODAY} {PAGENO} {NBPG}"
+    PAGE_LOGO: Логотип
+    PAGE_LOGO_HELP: "Пусто — используется настройка плагина."
+    PAGE_COLLECTION: Заголовок коллекции
+    PAGE_COLLECTION_HELP: "Заголовок страницы с коллекцией, из которой строится книга."
+    PAGE_CHILDREN: Если коллекции нет
+    PAGE_CHILDREN_HELP: "Что использовать, если у этой страницы нет коллекции."
+    PAGE_MAX_ITEMS: Максимум статей

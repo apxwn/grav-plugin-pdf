@@ -1,0 +1,30 @@
+{# Example PDF link, shipped so a theme does not have to invent the markup.
+
+   To use it, include it from a theme template:
+
+       {% include '@pdf/button.html.twig' %}
+
+   or copy it into the theme and change the classes and the styling.
+
+   The classes are plain and carry no styling of their own: `pdf-link`,
+   `pdf-link__icon`, `pdf-link__label`. Nothing here depends on a CSS framework,
+   and the icon is inline SVG for the same reason — an icon font may not have a
+   PDF glyph at all, and a missing glyph usually renders as nothing at all.
+
+   The data attributes are for a theme that wants to style a book link
+   differently from an article link, e.g. `[data-pdf-mode="book"]`. #}
+{% if pdf.enabled|default(false) %}
+    <a class="pdf-link" href="{{ pdf.url }}" rel="nofollow"
+       data-pdf-mode="{{ pdf.mode|default('article') }}"
+       {% if pdf.title %}data-pdf-title="{{ pdf.title|e('html_attr') }}"{% endif %}>
+        <svg class="pdf-link__icon" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"
+             viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M9.5 1.5H3.5v13h9v-9.5z" />
+            <path d="M9.5 1.5v3.5h3" />
+            <path d="M8 7.2v4.3" />
+            <path d="M6.1 9.6 8 11.5l1.9-1.9" />
+        </svg>
+        <span class="pdf-link__label">{{ pdf.label }}</span>
+    </a>
+{% endif %}

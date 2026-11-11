@@ -1,0 +1,396 @@
+name: PDF
+slug: pdf
+type: plugin
+version: 1.2.0
+description: "Generate a PDF of a page — a single article, or a whole collection as a book."
+icon: file-pdf
+author:
+  name: Roman Bannack
+  email: kontakt@orthodox-dresden.de
+homepage: https://github.com/apxwn/grav-plugin-pdf
+license: GPL-2.0-only
+readme: https://github.com/apxwn/grav-plugin-pdf/blob/main/README.md
+
+keywords:
+  - pdf
+  - ebook
+  - export
+  - print
+  - mpdf
+
+dependencies:
+  - { name: grav, version: '>=1.7.0' }
+  - { name: php, version: '>=8.1' }
+
+form:
+  validation: loose
+
+  fields:
+    enabled:
+      type: toggle
+      label: PLUGIN_ADMIN.PLUGIN_STATUS
+      highlight: 1
+      default: 1
+      options:
+        1: PLUGIN_ADMIN.ENABLED
+        0: PLUGIN_ADMIN.DISABLED
+      validate:
+        type: bool
+
+    inherit:
+      type: toggle
+      label: PLUGIN_PDF.INHERIT
+      help: PLUGIN_PDF.INHERIT_HELP
+      highlight: 1
+      default: 1
+      options:
+        1: PLUGIN_ADMIN.YES
+        0: PLUGIN_ADMIN.NO
+      validate:
+        type: bool
+
+    all_pages:
+      type: toggle
+      label: PLUGIN_PDF.ALL_PAGES
+      help: PLUGIN_PDF.ALL_PAGES_HELP
+      highlight: 0
+      default: 0
+      options:
+        1: PLUGIN_ADMIN.YES
+        0: PLUGIN_ADMIN.NO
+      validate:
+        type: bool
+
+    document:
+      type: section
+      title: PLUGIN_PDF.DOCUMENT
+      underline: true
+
+      fields:
+        cover:
+          type: toggle
+          label: PLUGIN_PDF.COVER
+          help: PLUGIN_PDF.COVER_HELP
+          highlight: 1
+          default: 1
+          options:
+            1: PLUGIN_ADMIN.YES
+            0: PLUGIN_ADMIN.NO
+          validate:
+            type: bool
+
+        toc:
+          type: toggle
+          label: PLUGIN_PDF.TOC_ENABLED
+          help: PLUGIN_PDF.TOC_ENABLED_HELP
+          highlight: 1
+          default: 1
+          options:
+            1: PLUGIN_ADMIN.YES
+            0: PLUGIN_ADMIN.NO
+          validate:
+            type: bool
+
+        toc_depth:
+          type: select
+          label: PLUGIN_PDF.TOC_DEPTH
+          default: 1
+          options:
+            1: PLUGIN_PDF.TOC_DEPTH_1
+            2: PLUGIN_PDF.TOC_DEPTH_2
+
+        page_numbers:
+          type: toggle
+          label: PLUGIN_PDF.PAGE_NUMBERS
+          help: PLUGIN_PDF.PAGE_NUMBERS_HELP
+          highlight: 1
+          default: 1
+          options:
+            1: PLUGIN_ADMIN.YES
+            0: PLUGIN_ADMIN.NO
+          validate:
+            type: bool
+
+        title:
+          type: text
+          label: PLUGIN_PDF.DOC_TITLE
+          help: PLUGIN_PDF.DOC_TITLE_HELP
+
+        date_format:
+          type: text
+          label: PLUGIN_PDF.DATE_FORMAT
+          help: PLUGIN_PDF.DATE_FORMAT_HELP
+
+    furniture:
+      type: section
+      title: PLUGIN_PDF.FURNITURE
+      underline: true
+
+      fields:
+        header:
+          type: textarea
+          rows: 3
+          label: PLUGIN_PDF.HEADER
+          help: PLUGIN_PDF.HEADER_HELP
+
+        footer:
+          type: textarea
+          rows: 3
+          label: PLUGIN_PDF.FOOTER
+          help: PLUGIN_PDF.HEADER_HELP
+
+        logo:
+          type: file
+          label: PLUGIN_PDF.LOGO
+          help: PLUGIN_PDF.LOGO_HELP
+          # `destination` is what tells the Admin where an upload may land. A
+          # `type: file` field without one is treated as page media and posts to
+          # /pages/<route>/media, which a plugin screen has no route for — the
+          # upload then hits a route that only accepts GET, DELETE and PATCH and
+          # fails with "Method 'POST' is not allowed". `self@:` resolves to the
+          # blueprint's owner, so this lands in user/plugins/pdf/logo/.
+          destination: 'self@:/logo'
+          multiple: false
+          avoid_overwriting: false
+          random_name: false
+          accept: ['image/*']
+
+    images:
+      type: section
+      title: PLUGIN_PDF.IMAGES
+      underline: true
+
+      fields:
+        images:
+          type: toggle
+          label: PLUGIN_PDF.IMAGES_ENABLED
+          help: PLUGIN_PDF.IMAGES_ENABLED_HELP
+          highlight: 0
+          default: 0
+          options:
+            1: PLUGIN_ADMIN.YES
+            0: PLUGIN_ADMIN.NO
+          validate:
+            type: bool
+
+        images_max:
+          type: number
+          label: PLUGIN_PDF.IMAGES_MAX
+          append: PLUGIN_PDF.IMAGES_PER_ARTICLE
+
+        images_width:
+          type: number
+          label: PLUGIN_PDF.IMAGES_WIDTH
+          append: PLUGIN_PDF.PIXELS
+
+        images_quality:
+          type: number
+          label: PLUGIN_PDF.IMAGES_QUALITY
+
+        image_field:
+          type: text
+          label: PLUGIN_PDF.IMAGE_FIELD
+          help: PLUGIN_PDF.IMAGE_FIELD_HELP
+
+        image_skip_field:
+          type: text
+          label: PLUGIN_PDF.IMAGE_SKIP_FIELD
+          help: PLUGIN_PDF.IMAGE_SKIP_FIELD_HELP
+
+        gallery_field:
+          type: text
+          label: PLUGIN_PDF.GALLERY_FIELD
+          help: PLUGIN_PDF.GALLERY_FIELD_HELP
+
+    meta:
+      type: section
+      title: PLUGIN_PDF.META
+      underline: true
+
+      fields:
+        # No `default:` here on purpose. With `use: keys` the field's own
+        # template merges `field.default` into the stored value, so a default
+        # would re-tick every option a user had just unticked. The default
+        # lives in pdf.yaml instead, which is what the form is populated from.
+        meta:
+          type: checkboxes
+          use: keys
+          label: PLUGIN_PDF.META_PARTS
+          help: PLUGIN_PDF.META_PARTS_HELP
+          options:
+            date: PLUGIN_PDF.META_DATE
+            category: PLUGIN_PDF.META_CATEGORY
+            author: PLUGIN_PDF.META_AUTHOR
+
+        meta_category_taxonomy:
+          type: text
+          label: PLUGIN_PDF.META_TAXONOMY
+          help: PLUGIN_PDF.META_TAXONOMY_HELP
+
+        meta_author_field:
+          type: text
+          label: PLUGIN_PDF.META_AUTHOR_FIELD
+          help: PLUGIN_PDF.META_AUTHOR_FIELD_HELP
+
+    content:
+      type: section
+      title: PLUGIN_PDF.CONTENT
+      underline: true
+
+      fields:
+        collection:
+          type: text
+          label: PLUGIN_PDF.COLLECTION
+          help: PLUGIN_PDF.COLLECTION_HELP
+
+        children:
+          type: select
+          label: PLUGIN_PDF.CHILDREN
+          help: PLUGIN_PDF.CHILDREN_HELP
+          options:
+            direct: PLUGIN_PDF.CHILDREN_DIRECT
+            descendants: PLUGIN_PDF.CHILDREN_DESCENDANTS
+
+        # `array` with `value_only` is the list-of-strings field: one input per
+        # entry, no key column. `list` is a flex-objects type and is not part of
+        # the form plugin, so it would not render on a site without flex-objects.
+        strip_shortcodes:
+          type: array
+          value_only: true
+          label: PLUGIN_PDF.STRIP_SHORTCODES
+          help: PLUGIN_PDF.STRIP_SHORTCODES_HELP
+          placeholder_value: PLUGIN_PDF.STRIP_SHORTCODES_PLACEHOLDER
+
+    layout:
+      type: section
+      title: PLUGIN_PDF.LAYOUT
+      underline: true
+
+      fields:
+        paper:
+          type: select
+          label: PLUGIN_PDF.PAPER
+          default: A4
+          options:
+            A4: A4
+            A5: A5
+            A3: A3
+            Letter: Letter
+            Legal: Legal
+
+        orientation:
+          type: select
+          label: PLUGIN_PDF.ORIENTATION
+          default: P
+          options:
+            P: PLUGIN_PDF.PORTRAIT
+            L: PLUGIN_PDF.LANDSCAPE
+
+        font_size:
+          type: number
+          label: PLUGIN_PDF.FONT_SIZE
+          append: PLUGIN_PDF.POINTS
+
+        # Text rather than a select on purpose: a site that added a family of its
+        # own can type its name, which a fixed option list would not allow. The
+        # help text names the built-in faces, and an unknown name falls back to
+        # DejaVu Sans with a warning in the log rather than silently.
+        font_body:
+          type: text
+          label: PLUGIN_PDF.FONT_BODY
+          help: PLUGIN_PDF.FONT_BODY_HELP
+          default: dejavusans
+
+        font_headings:
+          type: text
+          label: PLUGIN_PDF.FONT_HEADINGS
+          help: PLUGIN_PDF.FONT_HEADINGS_HELP
+          default: dejavusans
+
+        font_dir:
+          type: text
+          label: PLUGIN_PDF.FONT_DIR
+          help: PLUGIN_PDF.FONT_DIR_HELP
+
+        margins:
+          type: section
+          title: PLUGIN_PDF.MARGINS
+          fields:
+            margin_top:
+              type: number
+              label: PLUGIN_PDF.MARGIN_TOP
+              append: mm
+            margin_bottom:
+              type: number
+              label: PLUGIN_PDF.MARGIN_BOTTOM
+              append: mm
+            margin_left:
+              type: number
+              label: PLUGIN_PDF.MARGIN_LEFT
+              append: mm
+            margin_right:
+              type: number
+              label: PLUGIN_PDF.MARGIN_RIGHT
+              append: mm
+            margin_header:
+              type: number
+              label: PLUGIN_PDF.MARGIN_HEADER
+              append: mm
+            margin_footer:
+              type: number
+              label: PLUGIN_PDF.MARGIN_FOOTER
+              append: mm
+
+    advanced:
+      type: section
+      title: PLUGIN_PDF.ADVANCED
+      underline: true
+
+      fields:
+        cache:
+          type: toggle
+          label: PLUGIN_PDF.CACHE
+          highlight: 1
+          default: 1
+          options:
+            1: PLUGIN_ADMIN.ENABLED
+            0: PLUGIN_ADMIN.DISABLED
+          validate:
+            type: bool
+
+        cache_ttl:
+          type: number
+          label: PLUGIN_PDF.CACHE_TTL
+          append: PLUGIN_PDF.SECONDS
+
+        cache_path:
+          type: text
+          label: PLUGIN_PDF.CACHE_PATH
+          help: PLUGIN_PDF.CACHE_PATH_HELP
+
+        max_items:
+          type: number
+          label: PLUGIN_PDF.MAX_ITEMS
+          help: PLUGIN_PDF.MAX_ITEMS_HELP
+
+        show_count:
+          type: toggle
+          label: PLUGIN_PDF.SHOW_COUNT
+          help: PLUGIN_PDF.SHOW_COUNT_HELP
+          highlight: 0
+          default: 0
+          options:
+            1: PLUGIN_ADMIN.YES
+            0: PLUGIN_ADMIN.NO
+          validate:
+            type: bool
+
+        book_label:
+          type: text
+          label: PLUGIN_PDF.BOOK_LABEL
+          help: PLUGIN_PDF.LABEL_HELP
+
+        article_label:
+          type: text
+          label: PLUGIN_PDF.ARTICLE_LABEL
+          help: PLUGIN_PDF.LABEL_HELP

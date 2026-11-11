@@ -1,0 +1,70 @@
+name: Bug report
+description: A generated PDF is wrong, or the plugin misbehaves in Admin.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please try [Troubleshooting](https://github.com/apxwn/grav-plugin-pdf#7-troubleshooting)
+        first — it covers the usual causes. If you are reporting a PHP error, the last lines of
+        `logs/grav.log` are worth more than a description of the page.
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      description: The `version:` in `user/plugins/pdf/blueprints.yaml`, or the Admin plugin screen.
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Grav and PHP version
+      placeholder: Grav 2.2.9, PHP 8.3
+    validations:
+      required: true
+
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options:
+        - A single article's PDF
+        - A whole collection as a book
+        - The Admin plugin screen
+        - The per-page PDF tab
+        - Installing or updating the plugin
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happens, and what did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: From `logs/grav.log` in your Grav root. Remove anything you do not want to publish.
+      render: text
+
+  - type: textarea
+    id: settings
+    attributes:
+      label: Relevant settings
+      description: The keys from `user/config/plugins/pdf.yaml` that matter here, with private paths removed.
+      render: yaml
