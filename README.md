@@ -217,7 +217,7 @@ are the article partial and the listing template:
 
 | Where | What to add |
 |---|---|
-| the article partial, under the article body | `{% if pdf.enabled|default(false) %}<a href="{{ pdf.url }}">{{ pdf.label }}</a>{% endif %}` |
+| the article partial, under the article body | `{% include '@pdf/button.html.twig' %}`, or the guarded link shown above |
 | the listing template, above the items | the same block — on a page with a collection it links to the book |
 
 ---
