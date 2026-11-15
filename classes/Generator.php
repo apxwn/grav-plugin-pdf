@@ -5,21 +5,23 @@ namespace Grav\Plugin\Pdf;
 use Grav\Common\Data\Data;
 use Grav\Common\Grav;
 use Grav\Common\Page\Interfaces\PageInterface;
+use Grav\Plugin\Pdf\Engine\Document;
+use Grav\Plugin\Pdf\Engine\Gotenberg\Unavailable;
+use Grav\Plugin\Pdf\Engine\Router;
 use Grav\Plugin\PdfPlugin;
-use Mpdf\HTMLParserMode;
-use Mpdf\Output\Destination;
 
 /**
  * Builds and serves a document.
  *
- * mPDF is driven through CSS page boxes rather than SetHTMLHeader(), because the
- * imperative API silently loses the running header on the page that follows the
- * table of contents. `@page { … }` plus `@page :first { … }` gives a clean
- * cover and a reliable header on every other page.
+ * The Generator knows what goes into a document — the settings, the entries,
+ * the fonts — and nothing about how it is drawn: that is the engine's job. Two
+ * are available, the mPDF bundled with the plugin and an external Gotenberg
+ * service (see Engine\Router).
  *
  * Nothing here knows anything about a theme or a particular site: the fonts are
- * mPDF's own, the logo is whatever `logo` names, and every frontmatter key the
- * document reads is a setting with a generic default.
+ * mPDF's own (or the ones a site points at), the logo is whatever `logo` names,
+ * and every frontmatter key the document reads is a setting with a generic
+ * default.
  */
 class Generator
 {
@@ -109,17 +111,101 @@ class Generator
 
         $store = new Store($this->grav, $this->config);
         $key = $this->fingerprint($page, $items, $mode);
-        $file = $store->path($key);
+        $router = new Router($this->grav, $this->config);
+        $engine = $router->plan();
+
+        $file = $store->path($key . '.' . $engine);
 
         if (!$store->isFresh($file)) {
             $store->prepare($file);
-            $this->build($page, $items, $mode, $file);
-            $store->prune($file);
 
-            $this->grav['log']->info(sprintf('PDF: generated %s (%s, %d items)', $key, $mode, count($items)));
+            try {
+                [$file, $engine] = $this->produce($router, $this->document($page, $items, $mode), $store, $key, $engine);
+            } catch (Unavailable $e) {
+                $this->plain(503, sprintf(
+                    "Gotenberg at %s could not build this document, and falling back to mPDF is turned off.\n"
+                    . "%s\n",
+                    $router->url(),
+                    $e->getMessage()
+                ));
+            }
+
+            $store->prune($file);
         }
 
-        $this->send($page, $file, $key);
+        $this->send($page, $file, $key, $engine);
+    }
+
+    /**
+     * Build to a temporary file, then give it the name of the engine that
+     * actually produced it.
+     *
+     * The temporary file is what makes a half-written document impossible to
+     * serve, and building before the name is known is what keeps a fallback out
+     * of the Gotenberg cache entry: an mPDF document is stored under `…mpdf`,
+     * so the next request after Gotenberg recovers builds a Gotenberg one
+     * instead of reusing the substitute for a whole `cache_ttl`.
+     *
+     * @return array{0: string, 1: string} the file to serve, and the engine that produced it
+     */
+    private function produce(Router $router, Document $document, Store $store, string $key, string $engine): array
+    {
+        $temp = $store->temp($key);
+
+        try {
+            $used = $router->render($document, $temp);
+
+            if (!is_file($temp) || (int) filesize($temp) === 0) {
+                throw new \RuntimeException(sprintf('PDF: the %s engine produced no document.', $used));
+            }
+
+            $target = $store->path($key . '.' . $used);
+
+            // A rename within the cache directory is atomic; the copy is for a
+            // cache directory on another mount, where it is not.
+            if (!@rename($temp, $target) && !@copy($temp, $target)) {
+                throw new \RuntimeException(sprintf(
+                    'PDF: cannot write "%s". Make the PDF cache directory writable.',
+                    $target
+                ));
+            }
+
+            $this->grav['log']->info(sprintf(
+                'PDF: generated %s (%s, %d items, %s engine)',
+                $key,
+                $document->mode,
+                count($document->data['entries']),
+                $used
+            ));
+
+            return [$target, $used];
+        } finally {
+            if (is_file($temp)) {
+                @unlink($temp);
+            }
+        }
+    }
+
+    /**
+     * Everything that feeds the document, resolved once for whichever engine
+     * ends up drawing it.
+     */
+    private function document(PageInterface $page, array $items, string $mode): Document
+    {
+        $settings = $this->settings($page, $mode, $items);
+        $title = $this->title($page, $settings);
+        $site = (string) $this->grav['config']->get('site.title', '');
+
+        return new Document(
+            $this->grav,
+            $page,
+            $mode,
+            $settings,
+            $this->data($page, $items, $mode, $settings, $title, $site),
+            $this->fontPaths($settings),
+            $title,
+            $site
+        );
     }
 
     /**
@@ -139,6 +225,16 @@ class Generator
             (string) $page->route(),
             json_encode($settings),
         ];
+
+        // The engine and the address it talks to change the document — one
+        // renders it differently and the other decides which server does it.
+        // The password is left out: it does not change the output, and this
+        // string is not a place to keep a secret.
+        $gotenberg = $this->config->gotenbergBlock();
+        unset($gotenberg['password']);
+
+        $parts[] = 'engine=' . $this->config->engine();
+        $parts[] = 'gotenberg=' . json_encode($gotenberg);
 
         // The logo is a file on disk whose contents can change without any
         // setting changing, so fingerprint what actually resolved.
@@ -221,42 +317,43 @@ class Generator
     }
 
     /**
-     * The `fontDir` and `fontdata` values mPDF needs.
+     * The font files a site's settings resolve to, as absolute paths.
      *
-     * mPDF resolves a `fontdata` value as `<fontDir entry>/<value>`, so a bare
-     * file name means "in a `font_dir`" and needs no help. The `fonts` setting
-     * may also point at a file directly — an absolute path, a stream, or a path
-     * relative to the Grav root — which mPDF cannot find on its own. Those are
-     * resolved here and expressed relative to the first font directory, with
-     * `..` where the file lies outside it, so the name still resolves to that
-     * exact file. When no font directory is configured, the file's own folder
-     * is added.
+     * `font_dir` is where bare file names are looked up; a value in `fonts` may
+     * also point at a file directly — an absolute path, a stream, or a path
+     * relative to the Grav root. Both engines get the same answer, so a custom
+     * family is the same font whichever of them prints it.
      *
-     * @return array{0: string[], 1: array<string, array<string, string>>} directories, fonts
+     * @return array<string, array<string, string>> family => style => absolute path
      */
-    private function fontFiles(array $settings): array
+    private function fontPaths(array $settings): array
     {
         $dirs = $this->fontDirs($settings);
-        $fonts = (array) ($settings['fonts'] ?? []);
+        $paths = [];
 
-        // The directory names are compared as mPDF concatenates them, so they
-        // are made absolute once, here.
-        if ($dirs !== []) {
-            $dirs[0] = self::realPath($dirs[0]);
-        }
+        foreach ((array) ($settings['fonts'] ?? []) as $family => $styles) {
+            foreach ((array) $styles as $style => $file) {
+                $file = trim((string) $file);
 
-        foreach ($fonts as $family => $styles) {
-            foreach ($styles as $style => $file) {
-                $file = (string) $file;
-
-                // A bare name is already relative to `font_dir`.
-                if (strpbrk($file, '/\\') === false && !preg_match('#^[A-Za-z]:#', $file)) {
+                if ($file === '') {
                     continue;
                 }
 
                 $path = preg_match('#^[A-Za-z]:[\\\\/]#', $file)
                     ? $file
                     : Paths::resolve($this->grav, $file);
+
+                // A bare name is a file inside one of the `font_dir` folders.
+                if ($path === null || !is_file($path)) {
+                    $path = null;
+
+                    foreach ($dirs as $dir) {
+                        if (is_file($dir . '/' . $file)) {
+                            $path = $dir . '/' . $file;
+                            break;
+                        }
+                    }
+                }
 
                 if ($path === null || !is_file($path)) {
                     throw new \RuntimeException(sprintf(
@@ -267,47 +364,61 @@ class Generator
                     ));
                 }
 
-                $path = self::realPath($path);
-
-                if ($dirs === []) {
-                    $dirs[] = dirname($path);
-                }
-
-                $fonts[$family][$style] = self::relativePath($dirs[0], $path);
+                $paths[$family][$style] = $path;
             }
         }
 
-        return [array_values(array_unique($dirs)), $fonts];
+        return $paths;
     }
 
     /**
-     * An absolute path with the last `..` and symbolic link removed, for paths
-     * that exist; the input is returned unchanged otherwise.
-     */
-    private static function realPath(string $path): string
-    {
-        $real = realpath($path);
-
-        return $real === false ? $path : $real;
-    }
-
-    /**
-     * How to reach $to from inside $from. Both are absolute.
+     * The `.ttf` files behind one of the faces mPDF ships.
      *
-     * A plain `..` walk, because that is all mPDF needs: it concatenates the
-     * font directory and the name and hands the result to `file_exists()`.
+     * The bundled renderer knows these by family name; an external one needs
+     * the files themselves to embed, which is the only way it can set the same
+     * text in the same face. Empty for a family the plugin does not ship —
+     * the caller falls back to whatever the Gotenberg host has installed.
+     *
+     * @return array<string, string> style => absolute path
      */
-    private static function relativePath(string $from, string $to): string
+    public static function builtinFontFiles(string $family): array
     {
-        $from = array_values(array_filter(explode('/', str_replace('\\', '/', $from)), 'strlen'));
-        $to = array_values(array_filter(explode('/', str_replace('\\', '/', $to)), 'strlen'));
+        $files = [
+            'dejavusans' => 'DejaVuSans',
+            'dejavusanscondensed' => 'DejaVuSansCondensed',
+            'dejavuserif' => 'DejaVuSerif',
+            'dejavuserifcondensed' => 'DejaVuSerifCondensed',
+        ];
 
-        while ($from !== [] && $to !== [] && $from[0] === $to[0]) {
-            array_shift($from);
-            array_shift($to);
+        $base = $files[strtolower(trim($family))] ?? null;
+
+        if ($base === null) {
+            return [];
         }
 
-        return str_repeat('../', count($from)) . implode('/', $to);
+        $dir = dirname(__DIR__) . '/vendor/mpdf/mpdf/ttfonts/';
+        $styles = [
+            'R' => $base . '.ttf',
+            'B' => $base . '-Bold.ttf',
+            // DejaVu calls the slanted faces "Oblique" on the Sans families and
+            // "Italic" on the Serif ones; mPDF's own fontdata makes the same
+            // distinction.
+            'I' => [ $base . '-Italic.ttf', $base . '-Oblique.ttf' ],
+            'BI' => [ $base . '-BoldItalic.ttf', $base . '-BoldOblique.ttf' ],
+        ];
+
+        $found = [];
+
+        foreach ($styles as $style => $candidates) {
+            foreach ((array) $candidates as $candidate) {
+                if (is_file($dir . $candidate)) {
+                    $found[$style] = $dir . $candidate;
+                    break;
+                }
+            }
+        }
+
+        return $found;
     }
 
     /**
@@ -522,217 +633,6 @@ class Generator
     }
 
     /**
-     * Render with mPDF.
-     */
-    private function build(PageInterface $page, array $items, string $mode, string $file): void
-    {
-        $settings = $this->settings($page, $mode, $items);
-
-        $tmp = Paths::tmpDir($this->grav, $this->config);
-
-        if (!Paths::ensure($tmp)) {
-            throw new \RuntimeException(sprintf(
-                'Cannot create the PDF working directory "%s". Make the Grav cache directory writable, or set '
-                . '"cache_path" in the plugin settings.',
-                $tmp
-            ));
-        }
-
-        [$fontDirs, $fonts] = $this->fontFiles($settings);
-
-        // mPDF assembles its list of usable families in the constructor, so a
-        // site's own fonts have to arrive with the configuration rather than be
-        // added to the instance afterwards — otherwise `available_unifonts`
-        // would not contain them and a custom `default_font` would be
-        // substituted silently.
-        $config = [
-            'tempDir' => $tmp,
-            'mode' => 'utf-8',
-            'format' => (string) $settings['paper']
-                . (strtoupper((string) $settings['orientation']) === 'L' ? '-L' : ''),
-            'default_font' => (string) $settings['font_body'],
-            'default_font_size' => (int) $settings['font_size'],
-            'margin_top' => (int) $settings['margin_top'],
-            'margin_bottom' => (int) $settings['margin_bottom'],
-            'margin_left' => (int) $settings['margin_left'],
-            'margin_right' => (int) $settings['margin_right'],
-            'margin_header' => (int) $settings['margin_header'],
-            'margin_footer' => (int) $settings['margin_footer'],
-            // A header that outgrows `margin_top - margin_header` would be
-            // printed over the body. 'stretch' grows the top margin to the
-            // header's own measured height, and leaves the configured margin
-            // exactly as it is whenever the header fits inside it. The height is
-            // measured when the header is defined, which is why the stylesheet
-            // is loaded before that happens — see build().
-            'setAutoTopMargin' => 'stretch',
-            // mPDF marks text up by script, which is what keeps a mixed
-            // document together, but the face itself is the one configured
-            // here: autoLangToFont is off, because it would otherwise apply
-            // mPDF's own language table on top of the stylesheet and set
-            // Cyrillic and Greek runs in DejaVu Sans Condensed — whichever
-            // face was chosen. All four bundled faces cover Latin, Greek and
-            // Cyrillic.
-            'autoScriptToLang' => true,
-            'autoLangToFont' => false,
-        ];
-
-        if ($fonts !== []) {
-            $fontVariables = new \Mpdf\Config\FontVariables();
-            $configVariables = new \Mpdf\Config\ConfigVariables();
-            $config['fontdata'] = (array) ($fontVariables->getDefaults()['fontdata'] ?? [])
-                + $this->fontData($fonts);
-            $config['fontDir'] = array_values(array_unique(array_merge(
-                (array) ($configVariables->getDefaults()['fontDir'] ?? []),
-                $fontDirs
-            )));
-        }
-
-        $mpdf = new \Mpdf\Mpdf($config);
-
-        $title = $this->title($page, $settings);
-        $site = (string) $this->grav['config']->get('site.title', '');
-        $data = $this->data($page, $items, $mode, $settings, $title, $site);
-
-        $mpdf->SetTitle($title);
-        $mpdf->SetSubject($title);
-        $mpdf->SetAuthor($site);
-        $mpdf->SetCreator('Grav PDF plugin ' . PdfPlugin::VERSION);
-
-        $depth = max(1, (int) $settings['toc_depth']);
-        $tocMap = ['H1' => 0];
-        $bookmarkMap = ['H1' => 0];
-
-        if ($depth >= 2) {
-            $tocMap['H2'] = 1;
-            $bookmarkMap['H2'] = 1;
-        }
-
-        if ($settings['toc']) {
-            $mpdf->h2toc = $tocMap;
-        }
-        $mpdf->h2bookmarks = $bookmarkMap;
-
-        // The stylesheet has to be in the document before the header is defined:
-        // mPDF measures an html_* header the moment DefHTMLHeaderByName() sees
-        // it, and setAutoTopMargin uses that measurement. Loaded afterwards, a
-        // logo in the header would be measured at its natural size and every
-        // page would reserve a top margin tall enough to hold it. HEADER_CSS
-        // parses the rules without writing content or starting a page.
-        $mpdf->WriteHTML($this->render('@pdf/print-style.html.twig', $data), HTMLParserMode::HEADER_CSS);
-
-        $header = $this->furniture((string) $settings['header'], $settings, $title, true);
-        $footer = $this->furniture((string) $settings['footer'], $settings, $title, false);
-        $style = $this->pageCss($mpdf, $header, $footer, (bool) $settings['cover']);
-
-        if ($settings['cover']) {
-            $mpdf->WriteHTML($style . $this->render('@pdf/cover.html.twig', $data));
-            $mpdf->AddPage();
-
-            if ($settings['toc'] && $items) {
-                $mpdf->TOCpagebreakByArray([
-                    'toc_preHTML' => $this->render('@pdf/toc-heading.html.twig', $data),
-                    'toc_bookmarkText' => (string) $this->grav['language']->translate('PLUGIN_PDF.TOC'),
-                    'links' => true,
-                ]);
-            }
-
-            $mpdf->WriteHTML($this->render('@pdf/book.html.twig', $data));
-        } else {
-            $mpdf->WriteHTML($style . $this->render('@pdf/book.html.twig', $data));
-        }
-
-        $mpdf->Output($file, Destination::FILE);
-    }
-
-    /**
-     * The `fontdata` entries for the site's own families.
-     *
-     * mPDF needs the file name per style; `useOTL` and `useKashida` are the
-     * same defaults it gives its own faces, and are what make accented and
-     * Arabic-script text render from a font that supports them.
-     *
-     * @param array<string, array<string, string>> $fonts family => style => file
-     * @return array<string, array<string, mixed>>
-     */
-    private function fontData(array $fonts): array
-    {
-        $data = [];
-
-        foreach ($fonts as $family => $styles) {
-            $data[$family] = $styles + ['useOTL' => 255, 'useKashida' => 75];
-        }
-
-        return $data;
-    }
-
-    /**
-     * Register the running header/footer as named page boxes and return the CSS
-     * that binds them. `:first` exists only for a book, so a single article
-     * keeps its running header and numbering on page one.
-     */
-    private function pageCss(\Mpdf\Mpdf $mpdf, string $header, string $footer, bool $cover): string
-    {
-        if ($header === '' && $footer === '') {
-            return '';
-        }
-
-        $mpdf->DefHTMLHeaderByName('pdfmain', $header !== '' ? $header : '<div></div>');
-        $mpdf->DefHTMLFooterByName('pdfmain', $footer !== '' ? $footer : '<div></div>');
-
-        $css = '<style>@page { header: html_pdfmain; footer: html_pdfmain; }';
-
-        if ($cover) {
-            $mpdf->DefHTMLHeaderByName('pdffirst', '<div></div>');
-            $mpdf->DefHTMLFooterByName('pdffirst', '<div></div>');
-            $css .= ' @page :first { header: html_pdffirst; footer: html_pdffirst; }';
-        }
-
-        return $css . '</style>';
-    }
-
-    /**
-     * Expand the tokens a header or footer may use.
-     *
-     * `{PAGENO}` and `{nbpg}` are handed to mPDF; `{TODAY}` is ours precisely
-     * because mPDF already claims `{DATE …}`, and it follows `date_format` so
-     * the printed date matches the dateline under the article titles.
-     */
-    private function furniture(string $html, array $settings, string $title, bool $isHeader): string
-    {
-        // `page_numbers` supplies the default footer; it never edits one the
-        // author wrote, so a custom footer keeps its {PAGENO} either way.
-        if (!$isHeader && $settings['page_numbers'] && trim($html) === '') {
-            $html = '<div class="pdf-footer">{PAGENO} / {NBPG}</div>';
-        }
-
-        $replace = [
-            '{NBPG}' => '{nbpg}',
-            '{SITE}' => htmlspecialchars((string) $this->grav['config']->get('site.title', ''), ENT_QUOTES, 'UTF-8'),
-            '{TITLE}' => htmlspecialchars($title, ENT_QUOTES, 'UTF-8'),
-            '{TODAY}' => $this->today($settings),
-            '{LOGO}' => $this->logo($settings),
-        ];
-
-        $html = str_replace(array_keys($replace), array_values($replace), $html);
-
-        // A header that is nothing but an absent logo should not reserve space,
-        // but one that holds an image does count as content.
-        $probe = trim(strip_tags((string) preg_replace('#<img\b[^>]*>#i', ' . ', $html)));
-        $probe = trim(str_replace(['{PAGENO}', '{nbpg}'], '.', $probe));
-
-        if ($probe === '') {
-            return '';
-        }
-
-        // The header is wrapped so the stylesheet's .pdf-header gives it its
-        // size, colour and alignment, and so its measured height — the thing
-        // setAutoTopMargin reserves room for — is that of one block. The footer
-        // brings its own class with it in the default markup above. The wrap
-        // happens after the probe, so an absent logo still reserves nothing.
-        return $isHeader ? '<div class="pdf-header">' . $html . '</div>' : $html;
-    }
-
-    /**
      * The current date in the configured format.
      */
     private function today(array $settings): string
@@ -751,18 +651,6 @@ class Generator
         $format = trim((string) ($settings['date_format'] ?? ''));
 
         return $format !== '' ? $format : 'Y-m-d';
-    }
-
-    /**
-     * The logo as an inline image pointing at a local file.
-     */
-    private function logo(array $settings): string
-    {
-        $file = $this->logoFile($settings);
-
-        return $file === null
-            ? ''
-            : '<img src="' . htmlspecialchars($file, ENT_QUOTES, 'UTF-8') . '" alt="" class="pdf-logo" />';
     }
 
     /**
@@ -1053,6 +941,10 @@ class Generator
             $entries[] = [
                 'title' => (string) $source->title(),
                 'meta' => $this->meta($source, $settings),
+                // An id a table of contents can link to. mPDF does not need it
+                // — it numbers its own contents — but Chromium cannot, so the
+                // external engine builds its contents from these.
+                'anchor' => 'pdf-entry-' . count($entries),
                 'images' => $images ? Html::pageImages($source, $this->config, (int) $settings['images_max']) : [],
                 'content' => Html::body(
                     $source,
@@ -1079,24 +971,22 @@ class Generator
     }
 
     /**
-     * @param array<string, mixed> $data
-     */
-    private function render(string $template, array $data): string
-    {
-        return $this->grav['twig']->twig()->render($template, $data);
-    }
-
-    /**
      * Send the document and stop. Grav's own response is never used, so no page
      * is rendered and no theme template is involved.
+     *
+     * `X-PDF-Engine` says which renderer produced what is being sent — the one
+     * that was configured, or the substitute that stood in for it. It is on
+     * every response, cache hit or not, because a fallback has to be visible
+     * without reading the log.
      */
-    private function send(PageInterface $page, string $file, string $key): void
+    private function send(PageInterface $page, string $file, string $key, string $engine): void
     {
         $etag = '"' . $key . '"';
 
         if (trim((string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {
             header('HTTP/1.1 304 Not Modified');
             header('ETag: ' . $etag);
+            header('X-PDF-Engine: ' . $engine);
             exit;
         }
 
@@ -1109,6 +999,7 @@ class Generator
         header('Last-Modified: ' . gmdate('D, d M Y H:i:s', (int) filemtime($file)) . ' GMT');
         header('Cache-Control: private, max-age=0, must-revalidate');
         header('X-Robots-Tag: noindex, nofollow');
+        header('X-PDF-Engine: ' . $engine);
 
         while (ob_get_level() > 0) {
             ob_end_clean();

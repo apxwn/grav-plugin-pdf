@@ -1,8 +1,18 @@
 {# The body of the document: one article per page.
 
    Used for both shapes. A single article is simply a book of one entry, so
-   there is no second code path to keep in step. #}
+   there is no second code path to keep in step.
+
+   The page break is the one thing the two engines spell differently: mPDF
+   understands its own <pagebreak /> element, Chromium needs a block with
+   `break-after: page`. #}
 {% for entry in entries %}
     {% include '@pdf/article.html.twig' with { entry: entry } only %}
-    {% if not loop.last %}<pagebreak />{% endif %}
+    {% if not loop.last %}
+        {% if engine|default('mpdf') == 'gotenberg' %}
+            <div class="pdf-page-break"></div>
+        {% else %}
+            <pagebreak />
+        {% endif %}
+    {% endif %}
 {% endfor %}

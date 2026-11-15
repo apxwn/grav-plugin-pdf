@@ -18,6 +18,20 @@ en:
     INHERIT_HELP: "Let a page inherit pdf: settings from its parents. This is what lets a listing switch on every article in it."
     ALL_PAGES: Export every page
     ALL_PAGES_HELP: "Off by default: a page opts in with pdf: { enabled: true } in its frontmatter."
+    RENDERER: Renderer
+    ENGINE: PDF engine
+    ENGINE_HELP: "mPDF is bundled and always available. Gotenberg uses an external Gotenberg 9+ service."
+    GOTENBERG_URL: Gotenberg address
+    GOTENBERG_URL_HELP: "Host and optional port, e.g. 127.0.0.1:3000, or a full http(s) URL. Gotenberg is not bundled."
+    GOTENBERG_TEST: Test Gotenberg connection
+    GOTENBERG_TIMEOUT: Render timeout
+    GOTENBERG_CONNECT_TIMEOUT: Connection timeout
+    GOTENBERG_FALLBACK: Fall back to mPDF
+    GOTENBERG_FALLBACK_HELP: "When Gotenberg cannot render, produce the PDF with bundled mPDF instead."
+    GOTENBERG_RETRY: Retry after failure
+    GOTENBERG_USERNAME: Basic-auth username
+    GOTENBERG_PASSWORD: Basic-auth password
+    GOTENBERG_TLS: Verify TLS certificate
 
     DOCUMENT: Document
     COVER: Cover page
@@ -156,6 +170,20 @@ de:
     INHERIT_HELP: "Eine Seite übernimmt die pdf:-Einstellungen ihrer übergeordneten Seiten. Dadurch genügt es, eine Rubrik einzuschalten, um alle ihre Artikel mit einzuschalten."
     ALL_PAGES: Jede Seite exportieren
     ALL_PAGES_HELP: "Standardmäßig aus: eine Seite schaltet sich mit pdf: { enabled: true } im eigenen Frontmatter ein."
+    RENDERER: PDF-Renderer
+    ENGINE: PDF-Engine
+    ENGINE_HELP: "mPDF ist enthalten und immer verfügbar. Gotenberg verwendet einen externen Gotenberg-Dienst ab Version 9."
+    GOTENBERG_URL: Gotenberg-Adresse
+    GOTENBERG_URL_HELP: "Host mit optionalem Port, z. B. 127.0.0.1:3000, oder eine vollständige http(s)-URL. Gotenberg ist nicht enthalten."
+    GOTENBERG_TEST: Gotenberg-Verbindung testen
+    GOTENBERG_TIMEOUT: Zeitlimit für die PDF-Erzeugung
+    GOTENBERG_CONNECT_TIMEOUT: Verbindungszeitlimit
+    GOTENBERG_FALLBACK: Auf mPDF zurückfallen
+    GOTENBERG_FALLBACK_HELP: "Wenn Gotenberg die PDF nicht erzeugen kann, erstellt das enthaltene mPDF sie stattdessen."
+    GOTENBERG_RETRY: Nach einem Fehler erneut versuchen
+    GOTENBERG_USERNAME: Benutzername für Basic-Auth
+    GOTENBERG_PASSWORD: Passwort für Basic-Auth
+    GOTENBERG_TLS: TLS-Zertifikat prüfen
 
     DOCUMENT: Dokument
     COVER: Deckblatt
@@ -294,6 +322,20 @@ ru:
     INHERIT_HELP: "Страница наследует настройки pdf: от родительских страниц. Достаточно включить раздел, чтобы включились и все его статьи."
     ALL_PAGES: Экспортировать все страницы
     ALL_PAGES_HELP: "По умолчанию выключено: страница включается через pdf: { enabled: true } в её заголовке."
+    RENDERER: Обработчик PDF
+    ENGINE: Движок PDF
+    ENGINE_HELP: "mPDF встроен и всегда доступен. Gotenberg использует внешний сервис Gotenberg версии 9 или новее."
+    GOTENBERG_URL: Адрес Gotenberg
+    GOTENBERG_URL_HELP: "Имя хоста и необязательный порт, например 127.0.0.1:3000, или полный URL http(s). Gotenberg не входит в состав плагина."
+    GOTENBERG_TEST: Проверить соединение с Gotenberg
+    GOTENBERG_TIMEOUT: Тайм-аут создания PDF
+    GOTENBERG_CONNECT_TIMEOUT: Тайм-аут соединения
+    GOTENBERG_FALLBACK: Переключаться на mPDF
+    GOTENBERG_FALLBACK_HELP: "Если Gotenberg не может создать PDF, документ создаётся встроенным mPDF."
+    GOTENBERG_RETRY: Повтор после ошибки
+    GOTENBERG_USERNAME: Имя пользователя Basic-Auth
+    GOTENBERG_PASSWORD: Пароль Basic-Auth
+    GOTENBERG_TLS: Проверять TLS-сертификат
 
     DOCUMENT: Документ
     COVER: Титульная страница

@@ -26,8 +26,34 @@ class Html
      */
     public static function body(PageInterface $page, Config $config, bool $images, string $namespace = ''): string
     {
-        $html = (string) $page->content();
+        $html = self::strip((string) $page->content(), $page, $config);
 
+        if ($images) {
+            $html = self::images($html, $page, $config);
+        } else {
+            $html = (string) preg_replace('#<img\b[^>]*>#i', '', $html);
+        }
+
+        // <picture>/<figure> wrappers are noise once the images inside are gone.
+        $html = (string) preg_replace('#</?picture\b[^>]*>#i', '', $html);
+
+        if ($namespace !== '') {
+            $html = self::namespaceIds($html, $namespace);
+        }
+
+        return trim(self::anchors($html));
+    }
+
+    /**
+     * Remove the markup that can never print meaningfully.
+     *
+     * Shared by body() and inlineImages(), so the images the body will actually
+     * print are the ones the leading block knows to leave alone: an <img> inside
+     * a <noscript> or a stripped shortcode is not inline content, because
+     * body() drops it.
+     */
+    private static function strip(string $html, PageInterface $page, Config $config): string
+    {
         // Paired tags whose contents can never print meaningfully.
         $html = (string) preg_replace(
             '#<(script|style|iframe|form|video|audio|object|embed|svg|canvas|map|noscript)\b[^>]*>.*?</\1\s*>#is',
@@ -62,20 +88,7 @@ class Html
             );
         }
 
-        if ($images) {
-            $html = self::images($html, $page, $config);
-        } else {
-            $html = (string) preg_replace('#<img\b[^>]*>#i', '', $html);
-        }
-
-        // <picture>/<figure> wrappers are noise once the images inside are gone.
-        $html = (string) preg_replace('#</?picture\b[^>]*>#i', '', $html);
-
-        if ($namespace !== '') {
-            $html = self::namespaceIds($html, $namespace);
-        }
-
-        return trim(self::anchors($html));
+        return $html;
     }
 
     /**
@@ -218,8 +231,11 @@ class Html
      *   gallery_field     a header key that, when truthy, means "add every page
      *                     image, honouring `media_order`"
      *
-     * Inline body images are always added last. The result is capped, because an
-     * image-heavy gallery page would otherwise embed the lot.
+     * Inline body images are not returned: the body already prints them where
+     * the author put them, so repeating them in the leading block would draw
+     * each one twice. The block is for the lead picture and the gallery, which
+     * have no place in the body. The result is capped, because an image-heavy
+     * gallery page would otherwise embed the lot.
      *
      * @return string[] Local file paths.
      */
@@ -231,33 +247,48 @@ class Html
         $maxWidth = (int) $config->forPage($page, 'images_width', 1200);
         $quality = (int) $config->forPage($page, 'images_quality', 75);
 
-        $add = static function ($file) use (&$files, $maxWidth, $quality): void {
+        // The images the body already prints. They stay where they are, so the
+        // leading block must not repeat them.
+        $inline = self::inlineImages($page, $config);
+
+        $add = static function ($file) use (&$files, $maxWidth, $quality, $inline): bool {
             if (!is_string($file) || $file === '' || !is_file($file)) {
-                return;
+                return false;
+            }
+
+            if (isset($inline[self::fileKey($file)])) {
+                return false;
             }
 
             // Same treatment inline body images get, so `images_width` means the
             // same thing wherever the picture came from.
             $file = self::shrink($file, $maxWidth, $quality);
 
-            if (!in_array($file, $files, true)) {
-                $files[] = $file;
+            if (in_array($file, $files, true)) {
+                return false;
             }
+
+            $files[] = $file;
+
+            return true;
         };
 
-        $addMedium = static function ($medium) use ($add): void {
+        $addMedium = static function ($medium) use ($add): bool {
             if ($medium && method_exists($medium, 'path')) {
                 // `false`: return the file as it is; resetting would throw away
                 // any manipulation the page or the theme had already queued.
-                $add($medium->path(false));
+                return $add($medium->path(false));
             }
+
+            return false;
         };
 
         $media = $page->media();
         $images = $media->images(); // a plain array, not a collection
 
         // The leading image: an explicit frontmatter key, else the first image
-        // that is not the one `image_skip_field` names.
+        // that is not the one `image_skip_field` names and is not already in the
+        // body.
         $field = trim((string) $config->forPage($page, 'image_field', ''));
         $featured = $field !== '' ? $header->get($field) : null;
 
@@ -272,8 +303,11 @@ class Html
             $skip = $skipField !== '' ? (string) $header->get($skipField) : '';
 
             foreach ($images as $image) {
-                if ($skip === '' || $image->get('filename') !== $skip) {
-                    $addMedium($image);
+                if ($skip !== '' && $image->get('filename') === $skip) {
+                    continue;
+                }
+
+                if ($addMedium($image)) {
                     break;
                 }
             }
@@ -300,15 +334,42 @@ class Html
             }
         }
 
-        // Inline body images.
-        $content = (string) $page->content();
-        if (preg_match_all('#<img\b[^>]*\bsrc\s*=\s*["\']([^"\']+)["\']#i', $content, $matches)) {
+        return $max > 0 ? array_slice($files, 0, $max) : $files;
+    }
+
+    /**
+     * The local files the body's own <img> tags point at.
+     *
+     * Keyed by realpath, so a candidate resolved from page media and the same
+     * file resolved from a body `src` compare equal even when the two paths are
+     * spelled differently.
+     *
+     * @return array<string, true>
+     */
+    private static function inlineImages(PageInterface $page, Config $config): array
+    {
+        $html = self::strip((string) $page->content(), $page, $config);
+        $files = [];
+
+        if (preg_match_all('#<img\b[^>]*\bsrc\s*=\s*["\']([^"\']+)["\']#i', $html, $matches)) {
             foreach ($matches[1] as $src) {
-                $add(self::localFile($src, $page));
+                $file = self::localFile($src, $page);
+
+                if ($file !== null) {
+                    $files[self::fileKey($file)] = true;
+                }
             }
         }
 
-        return $max > 0 ? array_slice($files, 0, $max) : $files;
+        return $files;
+    }
+
+    /**
+     * A path that compares equal for the same file however it was spelled.
+     */
+    private static function fileKey(string $file): string
+    {
+        return (string) (realpath($file) ?: $file);
     }
 
     /**
@@ -366,20 +427,34 @@ class Html
      * Embedded at full size a photo-heavy article can be tens of megabytes;
      * mPDF embeds whatever it is given. Results are cached per source file, so
      * a book that reuses an image only pays for it once.
+     *
+     * The EXIF orientation is baked into the pixels on the way. GD ignores the
+     * tag and the re-encoded copy carries none, so a photo stored sideways —
+     * the usual case for a phone camera — would otherwise print rotated. mPDF
+     * does not read the tag either, so the correction has to happen here for
+     * both engines.
      */
     private static function shrink(string $file, int $maxWidth, int $quality): string
     {
-        if ($maxWidth <= 0) {
-            return $file;
-        }
-
         $info = @getimagesize($file);
 
-        if (!$info || $info[0] <= $maxWidth) {
+        if (!$info) {
             return $file;
         }
 
-        $info['mime'] ??= '';
+        $orientation = self::orientation($file, $info[2]);
+
+        // Orientations 5–8 turn the image a quarter turn, so the stored width
+        // is the displayed height.
+        [$width, $height] = $orientation >= 5 ? [$info[1], $info[0]] : [$info[0], $info[1]];
+
+        $resize = $maxWidth > 0 && $width > $maxWidth;
+
+        // Nothing to do: the file is already the right size and upright.
+        if (!$resize && $orientation === 1) {
+            return $file;
+        }
+
         $quality = max(1, min(100, $quality));
 
         $grav = Grav::instance();
@@ -387,7 +462,7 @@ class Html
         $tmpDir = Paths::tmpDir($grav, $config);
 
         $target = $tmpDir . '/' . md5($file . '|' . filemtime($file) . '|' . filesize($file)
-            . '|' . $maxWidth . '|' . $quality) . '.jpg';
+            . '|' . $maxWidth . '|' . $quality . '|' . $orientation) . '.jpg';
 
         if (is_file($target)) {
             return $target;
@@ -418,13 +493,24 @@ class Html
             return $file;
         }
 
-        $width = $maxWidth;
-        $height = max(1, (int) round($info[1] * ($maxWidth / $info[0])));
+        $source = self::orient($source, $orientation);
+
+        $sourceWidth = imagesx($source);
+        $sourceHeight = imagesy($source);
+
+        if ($maxWidth > 0 && $sourceWidth > $maxWidth) {
+            $width = $maxWidth;
+            $height = max(1, (int) round($sourceHeight * ($maxWidth / $sourceWidth)));
+        } else {
+            $width = $sourceWidth;
+            $height = $sourceHeight;
+        }
+
         $canvas = imagecreatetruecolor($width, $height);
 
         // JPEG has no alpha, so transparency becomes white rather than black.
         imagefill($canvas, 0, 0, imagecolorallocate($canvas, 255, 255, 255));
-        imagecopyresampled($canvas, $source, 0, 0, 0, 0, $width, $height, $info[0], $info[1]);
+        imagecopyresampled($canvas, $source, 0, 0, 0, 0, $width, $height, $sourceWidth, $sourceHeight);
 
         $ok = imagejpeg($canvas, $target, $quality);
 
@@ -432,5 +518,81 @@ class Html
         imagedestroy($source);
 
         return $ok ? $target : $file;
+    }
+
+    /**
+     * The EXIF orientation of a JPEG, as the 1–8 value the spec defines.
+     *
+     * Only JPEG is read: it is the format cameras write the tag into, and the
+     * one the plugin re-encodes. Anything else is upright as stored.
+     */
+    private static function orientation(string $file, int $type): int
+    {
+        if ($type !== IMAGETYPE_JPEG || !function_exists('exif_read_data')) {
+            return 1;
+        }
+
+        $exif = @exif_read_data($file);
+
+        if (!is_array($exif) || !isset($exif['Orientation'])) {
+            return 1;
+        }
+
+        $orientation = (int) $exif['Orientation'];
+
+        return $orientation >= 1 && $orientation <= 8 ? $orientation : 1;
+    }
+
+    /**
+     * Turn a GD image the way its EXIF orientation says it should be seen.
+     *
+     * The mapping is the one Grav's own image library uses, so a photo prints
+     * the same way here as it does in the article.
+     *
+     * @param \GdImage|resource $image
+     * @return \GdImage|resource
+     */
+    private static function orient($image, int $orientation)
+    {
+        switch ($orientation) {
+            case 2:
+                imageflip($image, IMG_FLIP_HORIZONTAL);
+                break;
+            case 3:
+                $image = self::rotate($image, 180);
+                break;
+            case 4:
+                imageflip($image, IMG_FLIP_VERTICAL);
+                break;
+            case 5:
+                imageflip($image, IMG_FLIP_VERTICAL);
+                $image = self::rotate($image, -90);
+                break;
+            case 6:
+                $image = self::rotate($image, -90);
+                break;
+            case 7:
+                imageflip($image, IMG_FLIP_HORIZONTAL);
+                $image = self::rotate($image, -90);
+                break;
+            case 8:
+                $image = self::rotate($image, 90);
+                break;
+        }
+
+        return $image;
+    }
+
+    /**
+     * Rotate a GD image, keeping the original if the rotation fails.
+     *
+     * @param \GdImage|resource $image
+     * @return \GdImage|resource
+     */
+    private static function rotate($image, int $angle)
+    {
+        $rotated = imagerotate($image, $angle, 0);
+
+        return $rotated === false ? $image : $rotated;
     }
 }

@@ -1,0 +1,35 @@
+{# The document Gotenberg converts: one HTML file, everything inline.
+
+   Unlike the mPDF path there is no second request per part and no separate
+   stylesheet upload — the service receives this file plus the fonts and images
+   it points at, and lays it out with Chromium. The page geometry (paper,
+   margins) is not here: it is a form field, because that is the only place
+   Chromium reads it from.
+
+   The cover is part of the same document rather than a separate file merged in
+   afterwards. Merging looks tidier but loses the catalogue's named
+   destinations, which is to say every footnote link in a book. #}
+<!doctype html>
+<html lang="{{ language|default('en') }}">
+<head>
+<meta charset="utf-8">
+<title>{{ document.title }}</title>
+<style>
+{{ include('@pdf/gotenberg-style.html.twig') }}
+{{ font_css|raw }}
+</style>
+</head>
+<body>
+{% if settings.cover %}
+    {% include '@pdf/cover.html.twig' %}
+    {% if settings.toc and toc is not empty %}<div class="pdf-page-break"></div>{% endif %}
+{% endif %}
+
+{% if settings.toc and toc is not empty %}
+    {% include '@pdf/gotenberg-toc.html.twig' %}
+    <div class="pdf-page-break"></div>
+{% endif %}
+
+{% include '@pdf/book.html.twig' with { entries: entries, engine: 'gotenberg' } only %}
+</body>
+</html>

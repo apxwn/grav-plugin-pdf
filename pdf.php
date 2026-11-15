@@ -28,7 +28,7 @@ use Twig\TwigFunction;
  */
 class PdfPlugin extends Plugin
 {
-    public const VERSION = '1.2.0';
+    public const VERSION = '1.3.1';
 
     /** Plugin slug; also the frontmatter key and the translation namespace. */
     public const SLUG = 'pdf';
@@ -51,6 +51,7 @@ class PdfPlugin extends Plugin
             // print templates through the same Twig environment.
             'onTwigLoader' => ['onTwigLoader', 0],
             'onTwigInitialized' => ['onTwigInitialized', 0],
+            'onApiRegisterRoutes' => ['onApiRegisterRoutes', 0],
         ];
     }
 
@@ -60,6 +61,21 @@ class PdfPlugin extends Plugin
     public function autoload(): ClassLoader
     {
         return require __DIR__ . '/vendor/autoload.php';
+    }
+
+    /**
+     * Register the optional Admin API endpoint when Grav's API plugin is present.
+     */
+    public function onApiRegisterRoutes(Event $event): void
+    {
+        if (!class_exists(\Grav\Plugin\Api\Controllers\AbstractApiController::class)) {
+            return;
+        }
+
+        $event['routes']->post('/pdf/gotenberg/test', [
+            \Grav\Plugin\Pdf\Api\GotenbergController::class,
+            'test',
+        ]);
     }
 
     public function onPluginsInitialized(): void

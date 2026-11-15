@@ -36,6 +36,20 @@ class Store
     }
 
     /**
+     * A scratch name for a document that is still being written.
+     *
+     * The engine writes here and the file is renamed once it is known to be
+     * whole, so a request that arrives mid-build — or a build that dies halfway
+     * — can never be served a truncated document. The name starts with a dot
+     * and does not end in `.pdf`, which keeps it out of everything that globs
+     * for cached documents.
+     */
+    public function temp(string $key): string
+    {
+        return rtrim($this->dir, '/') . '/.' . $key . '.' . bin2hex(random_bytes(8)) . '.part';
+    }
+
+    /**
      * Is the cached document still usable?
      */
     public function isFresh(string $file): bool

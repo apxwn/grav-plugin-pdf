@@ -1,8 +1,9 @@
 {# One article. Included by book.html.twig, once per entry. #}
 <article class="pdf-article">
     {# The only <h1> in the document, so the table of contents and the PDF
-       bookmarks list article titles and nothing else. #}
-    <h1>{{ entry.title }}</h1>
+       bookmarks list article titles and nothing else. The id is what an entry
+       can be linked to; mPDF ignores it, Chromium needs it for the contents. #}
+    <h1{% if entry.anchor %} id="{{ entry.anchor }}"{% endif %}>{{ entry.title }}</h1>
 
     {% if entry.meta %}
         <div class="pdf-meta">{{ entry.meta }}</div>

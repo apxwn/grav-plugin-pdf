@@ -33,7 +33,7 @@ build:
 
 ```bash
 cd user/plugins
-unzip ~/grav-plugin-pdf-1.2.0.zip     # creates ./pdf/
+unzip ~/grav-plugin-pdf-1.3.1.zip     # creates ./pdf/
 ```
 
 Then clear Grav's cache:
@@ -57,7 +57,8 @@ rm -rf cache/twig/*
 |---|---|
 | Grav | 1.7 or later (tested on 2.2.9) |
 | PHP | 8.1 or later |
-| mPDF | 8.2 or later — bundled |
+| mPDF | 8.2 or later — bundled, always available as the default and fallback |
+| Gotenberg | 9 or later — optional external service; PHP cURL extension required |
 
 ### Plugin layout
 
@@ -217,7 +218,7 @@ are the article partial and the listing template:
 
 | Where | What to add |
 |---|---|
-| the article partial, under the article body | `{% include '@pdf/button.html.twig' %}`, or the guarded link shown above |
+| the article partial, under the article body | `{% if pdf.enabled|default(false) %}<a href="{{ pdf.url }}">{{ pdf.label }}</a>{% endif %}` |
 | the listing template, above the items | the same block — on a page with a collection it links to the book |
 
 ---
@@ -225,7 +226,42 @@ are the article partial and the listing template:
 ## 4. Configuration
 
 `user/config/plugins/pdf.yaml` overrides the shipped defaults in
-`user/plugins/pdf/pdf.yaml`. Every one of these can also be set per page under `pdf:`.
+`user/plugins/pdf/pdf.yaml`. Document options can also be set per page under `pdf:`. Renderer
+settings are site-wide: a page cannot choose a host or engine.
+
+### Renderer
+
+mPDF is bundled and remains the default. To use the optional external Gotenberg service, set
+its address and select it as the engine:
+
+```yaml
+engine: gotenberg
+gotenberg:
+  url: '127.0.0.1:3000'
+  timeout: 30
+  connect_timeout: 2
+  fallback: true
+  retry_after: 60
+  username: ''
+  password: ''
+  verify_tls: true
+```
+
+The address may be `host:port`, a hostname, or a full `http://` / `https://` URL. Gotenberg is not installed by the plugin; run Gotenberg 9 or newer separately and make sure the Grav host can reach it.
+Admin's **Test Gotenberg connection** button and `bin/plugin pdf gotenberg:test` use the
+configured address and credentials to check `/version` and `/health`.
+
+With fallback enabled (the default), a failed conversion is automatically rendered by mPDF.
+The PDF response reports the actual renderer in `X-PDF-Engine`; failures are logged and a
+short-lived breaker avoids waiting on an unavailable host for every request. Turning fallback
+off makes a Gotenberg failure an error instead.
+
+Gotenberg uses Chromium rather than mPDF. A book's contents are links-only because page
+numbers are unknown before layout; the cover and articles are kept in one HTML document so
+anchors, footnotes and named destinations survive. Its PDF outline follows `toc_depth`.
+Fonts used by the document are uploaded with each conversion. Running headers/footers are
+separate Chromium documents and may use the host's fallback font; vector logos are cover-only
+because repeating them in every page makes large books disproportionately large.
 
 ### Document
 
@@ -353,8 +389,9 @@ pdf:
     images: true
 ```
 
-Then each article contributes, in this order: the leading image, the gallery (honouring
-`media_order`), and any images inline in the body.
+Then each article contributes, in this order: the leading image and the gallery (honouring
+`media_order`). Images placed inline in the body are left where they are and are not repeated
+at the top, so no picture is printed twice.
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -374,6 +411,8 @@ differently:
 With `image_field` empty, the first page image is used, skipping whatever `image_skip_field`
 names — which is what stops a listing's article avatars from becoming the article's lead
 picture. An `image_field` that is set but missing on a page falls back to that same rule.
+Images already placed inline in the body are skipped, so the lead picture is the first one
+the body does not print.
 
 Scaled copies are cached next to the generated documents, so a book that reuses an image
 pays for it once.

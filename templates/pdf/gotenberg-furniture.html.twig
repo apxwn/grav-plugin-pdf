@@ -1,0 +1,51 @@
+{# A running header or footer, as a document of its own.
+
+   Chromium renders the two in a separate page: no stylesheet from the document
+   reaches them, and neither does a file. Everything they need is therefore
+   inline — the rules here, and a data URI from Gotenberg.php for the logo. They
+   also cannot load a font, so their type is whatever the Gotenberg host has;
+   that is the one place the two engines visibly differ.
+
+   Fixed positioning puts the header and footer at the same measured offsets as
+   mPDF: `margin_header` from the top edge and `margin_footer` from the bottom.
+   Horizontal offsets use the document margins. #}
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    html, body { margin: 0; padding: 0; }
+    body {
+        margin: 0;
+        font-size: {{ is_header ? 8 : 9 }}pt;
+        color: #777777;
+    }
+    {% if is_header %}
+    .pdf-header {
+        position: fixed;
+        top: {{ settings.margin_header }}mm;
+        left: {{ settings.margin_left }}mm;
+        right: {{ settings.margin_right }}mm;
+        text-align: left;
+    }
+    /* The header a site configures often ends in an <hr>; without this it would
+       print as a browser-default rule, heavier than the one in the document. */
+    hr { border: none; border-top: 0.2mm solid #cccccc; margin: 2mm 0 0 0; }
+    {% else %}
+    .pdf-footer {
+        position: fixed;
+        bottom: {{ settings.margin_footer }}mm;
+        left: {{ settings.margin_left }}mm;
+        right: {{ settings.margin_right }}mm;
+        text-align: center;
+        border-top: 0.2mm solid #dddddd;
+        padding-top: 1.5mm;
+    }
+    {% endif %}
+    .pdf-logo { height: 8mm; vertical-align: middle; }
+</style>
+</head>
+<body>
+{{ body|raw }}
+</body>
+</html>

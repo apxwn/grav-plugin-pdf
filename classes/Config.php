@@ -43,6 +43,48 @@ class Config
     }
 
     /**
+     * One key of the `gotenberg` block.
+     *
+     * The block is plugin-wide on purpose: the engine and the address it talks
+     * to are properties of the server, not of a page, and a page that changed
+     * them could point the site at a host of its own choosing.
+     */
+    public function gotenberg(string $key, $default = null)
+    {
+        $block = $this->global['gotenberg'] ?? [];
+        $block = is_array($block) ? $block : [];
+
+        $value = $block[$key] ?? null;
+
+        return $value === null || $value === '' ? $default : $value;
+    }
+
+    /**
+     * The whole `gotenberg` block, with credentials included.
+     *
+     * Only for the code that talks to the service and for the test action; it
+     * is never handed to a template or written to a log.
+     *
+     * @return array<string, mixed>
+     */
+    public function gotenbergBlock(): array
+    {
+        $block = $this->global['gotenberg'] ?? [];
+
+        return is_array($block) ? $block : [];
+    }
+
+    /**
+     * The selected rendering engine, lower-cased: `mpdf` or `gotenberg`.
+     */
+    public function engine(): string
+    {
+        $engine = strtolower(trim((string) $this->global('engine', 'mpdf')));
+
+        return $engine === 'gotenberg' ? 'gotenberg' : 'mpdf';
+    }
+
+    /**
      * A setting as it applies to $page.
      */
     public function forPage(PageInterface $page, string $key, $default = null)

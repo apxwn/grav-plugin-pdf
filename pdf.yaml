@@ -20,6 +20,20 @@ inherit: true
 # pages opt in individually with `pdf: { enabled: true }`.
 all_pages: false
 
+# Rendering engine. Gotenberg is an optional external service; mPDF remains the
+# default and fallback renderer.
+engine: mpdf
+
+gotenberg:
+  url: ''
+  timeout: 30
+  connect_timeout: 2
+  fallback: true
+  retry_after: 60
+  username: ''
+  password: ''
+  verify_tls: true
+
 # --- the document -----------------------------------------------------------
 
 # A book gets a cover page and, if `toc` is on, a table of contents.
@@ -91,8 +105,8 @@ images_quality: 75  # JPEG quality for those scaled copies
 #   gallery_field     a header key that, when true, means "every image on the page"
 #
 # With image_field empty, the first page image is used, skipping the one
-# image_skip_field names. Page images honour `media_order`, and any image inside
-# the body text is added last.
+# image_skip_field names. Page images honour `media_order`. Images already
+# placed inline in the body are skipped, so nothing is printed twice.
 image_field: ''
 image_skip_field: ''
 gallery_field: 'gallery'
