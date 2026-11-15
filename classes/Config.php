@@ -75,13 +75,15 @@ class Config
     }
 
     /**
-     * The selected rendering engine, lower-cased: `mpdf` or `gotenberg`.
+     * The selected rendering engine, lower-cased: `php-pdf` or `gotenberg`.
+     *
+     * Legacy `mpdf` values silently map to `php-pdf`.
      */
     public function engine(): string
     {
-        $engine = strtolower(trim((string) $this->global('engine', 'mpdf')));
+        $engine = strtolower(trim((string) $this->global('engine', 'php-pdf')));
 
-        return $engine === 'gotenberg' ? 'gotenberg' : 'mpdf';
+        return $engine === 'gotenberg' ? 'gotenberg' : 'php-pdf';
     }
 
     /**

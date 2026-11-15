@@ -39,6 +39,11 @@ trap cleanup EXIT
 # into it), a populated one is not. The patterns are anchored with a leading
 # slash so they match the plugin root only — `vendor/` is shipped as Composer
 # built it, `.github/` and `.gitignore` files included.
+#
+# The bundled package's own development material is dropped: its tests, docs,
+# examples and static-analysis configs are several megabytes and nothing in
+# `src/` needs them. `resources/` stays — it carries the ICC profile the
+# library's PDF/A support reads.
 mkdir -p "$stage/pdf"
 rsync -a \
     --exclude '/.git/' \
@@ -48,6 +53,17 @@ rsync -a \
     --exclude '/tmp/' \
     --exclude '/build-release.sh' \
     --exclude '/.DS_Store' \
+    --exclude '/vendor/*/*/tests/' \
+    --exclude '/vendor/*/*/docs/' \
+    --exclude '/vendor/*/*/examples/' \
+    --exclude '/vendor/*/*/samples/' \
+    --exclude '/vendor/*/*/scripts/' \
+    --exclude '/vendor/*/*/.github/' \
+    --exclude '/vendor/*/*/phpunit.xml*' \
+    --exclude '/vendor/*/*/phpstan*' \
+    --exclude '/vendor/*/*/psalm*' \
+    --exclude '/vendor/*/*/.gitignore' \
+    --exclude '/vendor/*/*/.gitattributes' \
     "$here/" "$stage/pdf/"
 
 # The working directories are recreated empty, so a site has them on install

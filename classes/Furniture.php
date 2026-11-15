@@ -6,11 +6,12 @@ namespace Grav\Plugin\Pdf;
  * The running header and footer, expanded from one place.
  *
  * Both engines print the same instructions — `{LOGO} {SITE} · {TITLE}` and so
- * on — but they express two of the tokens differently: mPDF wants its own
- * `{PAGENO}` placeholders, Chromium wants a `<span class="pageNumber">`, and
- * the logo is a file path for one and a data URI for the other. Everything
- * else, including the decision that a header which is nothing but an absent
- * logo reserves no room at all, is shared.
+ * on — but they express two of the tokens differently: the built-in engine
+ * wants a `<span class="pageNumber">` it turns into a page field, Chromium
+ * wants the same span filled in after layout, and the logo is a file path for
+ * one and a data URI for the other. Everything else, including the decision
+ * that a header which is nothing but an absent logo reserves no room at all, is
+ * shared.
  */
 final class Furniture
 {
@@ -46,8 +47,8 @@ final class Furniture
             '{TITLE}' => htmlspecialchars($title, ENT_QUOTES, 'UTF-8'),
             '{TODAY}' => $today,
             '{LOGO}' => $dialect['logo'],
-            // mPDF reads `{PAGENO}` itself, so its dialect maps the token onto
-            // itself; Chromium wants a span it fills in after layout.
+            // The engine's dialect decides how a page number is spelled: a
+            // span the renderer fills in, or a placeholder it reads itself.
             '{PAGENO}' => $dialect['page'],
         ];
 
@@ -66,10 +67,9 @@ final class Furniture
 
         // The header is wrapped so the stylesheet's .pdf-header gives it its
         // size, colour and alignment, and so its measured height — the thing
-        // mPDF's setAutoTopMargin reserves room for — is that of one block. The
-        // footer brings its own class with it in the default markup above. The
-        // wrap happens after the probe, so an absent logo still reserves
-        // nothing.
+        // the engine reserves room for — is that of one block. The footer
+        // brings its own class with it in the default markup above. The wrap
+        // happens after the probe, so an absent logo still reserves nothing.
         return $isHeader ? '<div class="pdf-header">' . $html . '</div>' : $html;
     }
 }

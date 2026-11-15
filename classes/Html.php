@@ -11,10 +11,10 @@ use Grav\Common\Page\Interfaces\PageInterface;
  *
  * The PDF is text by default. Plenty of the source markup is meaningless on
  * paper — embeds, scripts, gallery mounts — and some of it is actively harmful,
- * so it is removed rather than left for mPDF to trip over. Images are dropped
- * unless the page opts in, and when they are kept they are pointed at local
- * files (mPDF reaching out over HTTP is exactly what breaks under a single
- * threaded dev server) and scaled down before embedding.
+ * so it is removed rather than left for the renderer to trip over. Images are
+ * dropped unless the page opts in, and when they are kept they are pointed at
+ * local files (a renderer reaching out over HTTP is exactly what breaks under a
+ * single threaded dev server) and scaled down before embedding.
  */
 class Html
 {
@@ -98,11 +98,11 @@ class Html
      * Each article starts its own numbering. Markdown Extra gives every article's
      * first footnote `id="fn:1"`, and a table-of-contents extension typically
      * names a heading after its text with no page identity, so two articles that
-     * both carry a "Notes" heading both get `id="notes"`. mPDF keys its anchors
-     * by name alone and a repeated `<a name="…">` simply overwrites the earlier
-     * one, so every link to a repeated name resolves to whichever article
-     * defined it last: a footnote halfway through a book jumped to the last
-     * article's footnote.
+     * both carry a "Notes" heading both get `id="notes"`. A named destination
+     * is keyed by name alone and a repeated `<a name="…">` simply overwrites
+     * the earlier one, so every link to a repeated name resolves to whichever
+     * article defined it last: a footnote halfway through a book jumped to the
+     * last article's footnote.
      *
      * The prefix is the entry's position. It ends in a colon, which a slug of
      * the kind heading anchors are built from — lower-case letters, digits and
@@ -142,15 +142,12 @@ class Html
     }
 
     /**
-     * Give every `id` a name mPDF can register as a link target.
+     * Give every `id` a name the renderer can register as a link target.
      *
-     * A `#fragment` link is resolved only against an anchor written as
-     * `<a name="…">`; an element carrying `id="…"` is invisible to mPDF (Tag/A.php
-     * is the only place a target is registered at all). A link to an id
-     * therefore resolves to no page: mPDF writes the destination as
-     * `[%d 0 R …]` with `1 + 2 * $l[0]` and `$l` still `[0, 0]`, which is object
-     * 1 — the page-tree root, not a page. Viewers cannot follow that, so the
-     * link looks live and goes nowhere.
+     * The built-in engine registers a named destination for a heading's `id`
+     * and for an `<a name="…">`, and for nothing else: an element carrying only
+     * `id="…"` is not a target. A `#fragment` link to such an id therefore
+     * resolves to no page, and the link looks live but goes nowhere.
      *
      * The targets in real content are ids: a table-of-contents extension puts
      * them on headings and builds its list from them, Markdown Extra footnotes
@@ -166,8 +163,7 @@ class Html
      *
      * Two elements get it in front instead. A list item may open with a block,
      * and an anchor inside would stand on a line of its own above it; a link may
-     * not hold an anchor at all, because mPDF's `A::close()` clears HREF and the
-     * link itself would be lost.
+     * not hold an anchor at all, because the link's own target would be lost.
      */
     private static function anchors(string $html): string
     {
@@ -376,8 +372,8 @@ class Html
      * Map a rendered `src` back to a file on disk.
      *
      * Grav emits site-absolute, percent-encoded paths
-     * (`/<base>/user/pages/.../Some%20Photo.jpg`), which mPDF would try to fetch
-     * over HTTP. Strip the base, decode, and check that it exists.
+     * (`/<base>/user/pages/.../Some%20Photo.jpg`), which a renderer would try
+     * to fetch over HTTP. Strip the base, decode, and check that it exists.
      */
     public static function localFile(string $src, ?PageInterface $page = null): ?string
     {
@@ -425,14 +421,13 @@ class Html
      * Re-encode an oversized image into the plugin's working directory.
      *
      * Embedded at full size a photo-heavy article can be tens of megabytes;
-     * mPDF embeds whatever it is given. Results are cached per source file, so
-     * a book that reuses an image only pays for it once.
+     * the renderer embeds whatever it is given. Results are cached per source
+     * file, so a book that reuses an image only pays for it once.
      *
      * The EXIF orientation is baked into the pixels on the way. GD ignores the
      * tag and the re-encoded copy carries none, so a photo stored sideways —
-     * the usual case for a phone camera — would otherwise print rotated. mPDF
-     * does not read the tag either, so the correction has to happen here for
-     * both engines.
+     * the usual case for a phone camera — would otherwise print rotated.
+     * Neither engine reads the tag, so the correction has to happen here.
      */
     private static function shrink(string $file, int $maxWidth, int $quality): string
     {

@@ -1,7 +1,7 @@
 # Nothing the plugin writes at runtime belongs in the repository.
 #
 # /cache/  rendered PDFs      — now written to Grav's own cache stream, see
-# /tmp/    mPDF's working dir    classes/Paths.php. Still listed so an older
+# /tmp/    working files         classes/Paths.php. Still listed so an older
 #                                install does not commit its leftovers.
 #
 # /logo/*  whatever the Admin file field uploaded. The folder itself is kept,

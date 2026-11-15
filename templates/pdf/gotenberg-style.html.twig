@@ -1,11 +1,10 @@
 {# Print stylesheet for the Chromium path.
 
-   The counterpart of print-style.html.twig, and deliberately the same rules in
-   the same order: the two engines should differ in how a page is produced, not
-   in what it looks like. The differences are the ones Chromium needs —
-   `break-after: page` instead of mPDF's <pagebreak />, and the demoted
-   headings, which are <div>s here because Gotenberg bookmarks every heading
-   level it finds.
+   The counterpart of php-pdf-style.html.twig, and deliberately the same rules
+   in the same order: the two engines should differ in how a page is produced,
+   not in what it looks like. The differences are the ones Chromium needs — the
+   demoted headings, which are <div>s here because Gotenberg bookmarks every
+   heading level it finds.
 
    No <style> wrapper: gotenberg.html.twig includes this inside one. #}
     body {

@@ -1,0 +1,86 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Dskripchenko\PhpPdf\Tests\Barcode;
+
+use Dskripchenko\PhpPdf\Barcode\Code128Encoder;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+final class Code128SetCTest extends TestCase
+{
+    #[Test]
+    public function set_c_used_for_even_digit_string(): void
+    {
+        // 8 digits → Set C: 4 data CW + start + checksum + stop = 7 CW.
+        // 11 modules per CW = 77 + 2 extra (stop pattern) = 79.
+        $enc = new Code128Encoder('12345678');
+        // Set C is more compact: 4 CW for 8 digits against 8 CW for Set B.
+        $cModules = $enc->moduleCount();
+
+        // Compare against an odd length (which forces the Set B fallback).
+        $encB = new Code128Encoder('123456789'); // 9 digits — Set B.
+        $bModules = $encB->moduleCount();
+
+        // Set C at 8 digits (4 CW) < Set B at 9 digits (9 CW).
+        self::assertLessThan($bModules, $cModules);
+    }
+
+    #[Test]
+    public function set_c_compactness_8_digits(): void
+    {
+        $enc = new Code128Encoder('12345678');
+        // Set C: start_C + 4 pair CWs + checksum + stop = 7 CWs.
+        // 7 × 11 + 2 (stop tail) = 79 modules.
+        self::assertSame(79, $enc->moduleCount());
+    }
+
+    #[Test]
+    public function set_b_used_for_short_digit_string(): void
+    {
+        // Under 4 digits the Set C overhead is not worth it → Set B is used.
+        $enc = new Code128Encoder('12');
+        // Set B: start + 2 char CWs + checksum + stop = 5 CWs × 11 + 2 = 57.
+        self::assertSame(57, $enc->moduleCount());
+    }
+
+    #[Test]
+    public function odd_digit_string_uses_c_for_pairs_b_for_remainder(): void
+    {
+        // Phase 164: auto mode compresses 4 digits into Set C (=2 CW), and the
+        // trailing digit '5' goes to Set B (1 CW). The old behaviour was all
+        // Set B (90 modules).
+        $encAuto = new Code128Encoder('12345');
+        $encLegacy = new Code128Encoder('12345', autoMode: false);
+        // Auto has to be shorter.
+        self::assertLessThan($encLegacy->moduleCount(), $encAuto->moduleCount(),
+            'auto-mode compresses через Set C switching');
+    }
+
+    #[Test]
+    public function set_b_used_for_mixed_content(): void
+    {
+        // Non-digit content — Set B unconditional.
+        $enc = new Code128Encoder('ABC1234');
+        self::assertGreaterThan(0, $enc->moduleCount());
+    }
+
+    #[Test]
+    public function set_c_renders_via_long_numeric(): void
+    {
+        // A 12-digit numeric (an EAN-style barcode encoded in Code 128, say).
+        $enc = new Code128Encoder('123456789012');
+        // Set C: 6 pair CWs + start + checksum + stop = 9 CWs × 11 + 2 = 101.
+        self::assertSame(101, $enc->moduleCount());
+    }
+
+    #[Test]
+    public function set_c_first_and_last_module_black(): void
+    {
+        $enc = new Code128Encoder('1234');
+        $modules = $enc->modules();
+        self::assertTrue($modules[0], 'First module must be black (start pattern)');
+        self::assertTrue($modules[count($modules) - 1], 'Last module (stop tail) must be black');
+    }
+}

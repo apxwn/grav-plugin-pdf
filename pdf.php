@@ -28,7 +28,7 @@ use Twig\TwigFunction;
  */
 class PdfPlugin extends Plugin
 {
-    public const VERSION = '1.3.1';
+    public const VERSION = '1.4.0';
 
     /** Plugin slug; also the frontmatter key and the translation namespace. */
     public const SLUG = 'pdf';
@@ -56,7 +56,7 @@ class PdfPlugin extends Plugin
     }
 
     /**
-     * Register the bundled mPDF autoloader.
+     * Register the bundled dependency autoloader.
      */
     public function autoload(): ClassLoader
     {
@@ -80,6 +80,14 @@ class PdfPlugin extends Plugin
 
     public function onPluginsInitialized(): void
     {
+        // The font dropdowns in the Admin screens are filled by a static
+        // provider (see classes/Admin.php). A blueprint shipped on disk is
+        // trusted, but registering the provider keeps the field working if the
+        // blueprint ever reaches Admin through an untrusted path.
+        \Grav\Common\Data\Blueprint::addAllowedDynamicCallable(
+            \Grav\Plugin\Pdf\Admin::class . '::fontOptions'
+        );
+
         if ($this->isAdmin()) {
             return;
         }

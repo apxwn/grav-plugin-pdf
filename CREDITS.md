@@ -3,7 +3,7 @@
 ## This plugin
 
 Grav PDF plugin — Copyright (C) 2026 Roman Bannack.
-Licensed under the GNU General Public License, version 2 only. See [LICENSE](LICENSE).
+Licensed under the MIT License. See [LICENSE](LICENSE).
 
 ## Bundled dependencies
 
@@ -11,34 +11,25 @@ Licensed under the GNU General Public License, version 2 only. See [LICENSE](LIC
 
 | Package | Version | Licence | Copyright |
 |---|---|---|---|
-| [mpdf/mpdf](https://github.com/mpdf/mpdf) | 8.3.1 | GPL-2.0-only | Ian Back and contributors |
-| [mpdf/psr-http-message-shim](https://github.com/mpdf/psr-http-message-shim) | 2.0.1 | MIT | mPDF contributors |
-| [mpdf/psr-log-aware-trait](https://github.com/mpdf/psr-log-aware-trait) | 3.0.0 | MIT | mPDF contributors |
-| [myclabs/deep-copy](https://github.com/myclabs/DeepCopy) | 1.14.0 | MIT | MyCLabs |
-| [paragonie/random_compat](https://github.com/paragonie/random_compat) | 9.99.100 | MIT | Paragon Initiative Enterprises |
-| [psr/http-message](https://github.com/php-fig/http-message) | 2.0 | MIT | PHP-FIG |
-| [psr/log](https://github.com/php-fig/log) | 3.0.2 | MIT | PHP-FIG |
-| [setasign/fpdi](https://github.com/Setasign/FPDI) | 2.6.9 | MIT | Setasign GmbH & Co. KG |
+| [dskripchenko/php-pdf](https://github.com/dskripchenko/php-pdf) | 1.28.0 | MIT | Denis Skripchenko |
 
-mPDF is GPL-2.0-only, which is why this plugin is licensed under the same terms rather than
-under a permissive licence: distributing the two together cannot be done otherwise. The MIT
-dependencies are compatible with it.
-
-Each package keeps its own licence and credits inside its folder under `vendor/`; the
-authoritative texts are those files. mPDF's `vendor/mpdf/mpdf/CREDITS.txt` lists the
-components mPDF itself is built from (FPDF, HTML2FPDF and others) and the people behind
-them.
+`dskripchenko/php-pdf` has no runtime dependencies of its own: it needs only PHP
+with `ext-dom`, `ext-mbstring` and `ext-zlib`. Each package keeps its own licence
+and credits inside its folder under `vendor/`; the authoritative text is that
+file.
 
 ## Fonts
 
-`vendor/mpdf/mpdf/ttfonts/` carries a trimmed subset of mPDF's fonts — the DejaVu family and
-the Free family.
+`fonts/` carries the DejaVu family, which the plugin embeds into the documents it
+builds:
 
-* **DejaVu** is Copyright © 2003 Bitstream, Inc. (Bitstream Vera Fonts Copyright), with the
-  DejaVu changes in the public domain and glyphs imported from Arev, Copyright © Tavmjong
-  Bah. The full licence text is `vendor/mpdf/mpdf/ttfonts/DejaVuinfo.txt`.
-* **Free** fonts are Copyright © GNU FreeFont contributors, under the GNU GPL with a font
-  exception.
+* **DejaVu** is Copyright © 2003 Bitstream, Inc. (Bitstream Vera Fonts Copyright),
+  with the DejaVu changes in the public domain and glyphs imported from Arev,
+  Copyright © Tavmjong Bah. The full licence text is `fonts/DejaVuinfo.txt`.
+
+The faces shipped are DejaVu Sans, DejaVu Sans Condensed, DejaVu Serif, DejaVu
+Serif Condensed and DejaVu Sans Mono, each in regular, bold, italic and
+bold-italic. Between them they cover Latin, Greek and Cyrillic.
 
 ## Grav
 

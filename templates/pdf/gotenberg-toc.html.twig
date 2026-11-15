@@ -1,13 +1,12 @@
 {# The contents of a book, as Chromium can print it.
 
-   mPDF numbers its table of contents because it paginates while it sets the
-   page; Chromium does not know where anything lands until the layout is
-   finished, so this list is links only. Deep items exist only when `toc_depth`
-   allows them, which is also when they stop being demoted to paragraphs.
+   Chromium does not know where anything lands until the layout is finished, so
+   this list is links only — the same shape the built-in engine produces. Deep
+   items exist only when `toc_depth` allows them, which is also when they stop
+   being demoted to paragraphs.
 
-   The title is an <h1> so that the outline has an entry for the contents, the
-   way mPDF's `toc_bookmarkText` gives it one — and so that it sorts above the
-   articles rather than nowhere at all. #}
+   The title is an <h1> so that the outline has an entry for the contents, and
+   so that it sorts above the articles rather than nowhere at all. #}
 <div class="pdf-toc">
     <h1 class="pdf-toc-title">{{ 'PLUGIN_PDF.TOC'|t }}</h1>
 

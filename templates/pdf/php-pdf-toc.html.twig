@@ -1,0 +1,15 @@
+{# Linked table of contents without page numbers.
+
+   The title is an <h1> so the PDF outline includes an entry for the contents
+   above the articles. #}
+<div class="pdf-toc">
+    <h1 class="pdf-toc-title">{{ 'PLUGIN_PDF.TOC'|t }}</h1>
+
+    <ul class="pdf-toc-list">
+        {% for item in toc %}
+            <li class="pdf-toc-level-{{ item.level }}">
+                <a href="{{ item.href }}">{{ item.text }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+</div>

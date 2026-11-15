@@ -38,11 +38,14 @@ pdfimages -list /tmp/x.pdf | head
 | `classes/Config.php` | effective settings for a page, including inheritance |
 | `classes/Items.php` | what goes into the document: the collection, the language filter, the mode |
 | `classes/Html.php` | the page's rendered HTML turned into printable HTML: images, anchors, dropped elements |
-| `classes/Generator.php` | settings normalisation, document assembly, mPDF invocation |
+| `classes/Generator.php` | settings normalisation, document assembly, engine invocation |
+| `classes/Admin.php` | values the Admin screens cannot get from a static blueprint (the font dropdowns) |
 | `classes/Store.php` | the on-disk document cache |
-| `classes/Paths.php` | where documents and mPDF's working files live |
+| `classes/Paths.php` | where documents and the plugin's working files live |
 | `classes/State.php` | the `pdf` Twig variable |
-| `templates/pdf/` | print stylesheet, cover, contents, article, book layout, example button |
+| `classes/Engine/` | the renderers: `PhpPdf` (bundled), `Gotenberg` (external), and the `Router` that picks one |
+| `fonts/` | the DejaVu faces the plugin embeds |
+| `templates/pdf/` | print stylesheets, cover, contents, article, book layout, example button |
 
 Nothing in `classes/` or `templates/` may name a theme, a site or a specific frontmatter
 key. Every key the document reads is a setting with a generic default; a site that names
@@ -50,7 +53,7 @@ things differently sets it in `user/config/plugins/pdf.yaml`.
 
 ## Conventions
 
-* **PHP 8.1+**, typed properties, `declare(strict_types)` is not used (Grav does not).
+* **PHP 8.2+**, typed properties, `declare(strict_types)` is not used (Grav does not).
 * `private const` for fixed tables, `private static function` when no state is involved.
 * Comments explain *why*, not *what*. A comment that restates the code is noise; a comment
   that records why `SetHTMLHeader()` is not used, or why an anchor sits inside its element,
@@ -58,7 +61,8 @@ things differently sets it in `user/config/plugins/pdf.yaml`.
 * User-visible strings go through `PLUGIN_PDF.*` and exist in all three languages.
 * New settings need: a default in `pdf.yaml`, a field in `blueprints.yaml`, a translation
   key, and a row in the README table.
-* Every Twig line the plugin emits for the document keeps its classes in `print-style.html.twig`.
+* Every Twig line the plugin emits for the document keeps its classes in
+  `php-pdf-style.html.twig` (and its Chromium counterpart, `gotenberg-style.html.twig`).
   Do not put colours or sizes in the markup.
 
 ## Tests

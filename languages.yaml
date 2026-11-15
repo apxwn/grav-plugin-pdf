@@ -20,14 +20,16 @@ en:
     ALL_PAGES_HELP: "Off by default: a page opts in with pdf: { enabled: true } in its frontmatter."
     RENDERER: Renderer
     ENGINE: PDF engine
-    ENGINE_HELP: "mPDF is bundled and always available. Gotenberg uses an external Gotenberg 9+ service."
+    ENGINE_HELP: "php-pdf is bundled and always available. Gotenberg uses an external Gotenberg 9+ service."
+    ENGINE_PHP_PDF: php-pdf (bundled)
+    ENGINE_GOTENBERG: Gotenberg (external)
     GOTENBERG_URL: Gotenberg address
     GOTENBERG_URL_HELP: "Host and optional port, e.g. 127.0.0.1:3000, or a full http(s) URL. Gotenberg is not bundled."
     GOTENBERG_TEST: Test Gotenberg connection
     GOTENBERG_TIMEOUT: Render timeout
     GOTENBERG_CONNECT_TIMEOUT: Connection timeout
-    GOTENBERG_FALLBACK: Fall back to mPDF
-    GOTENBERG_FALLBACK_HELP: "When Gotenberg cannot render, produce the PDF with bundled mPDF instead."
+    GOTENBERG_FALLBACK: Fall back to php-pdf
+    GOTENBERG_FALLBACK_HELP: "When Gotenberg cannot render, produce the PDF with the bundled php-pdf engine instead."
     GOTENBERG_RETRY: Retry after failure
     GOTENBERG_USERNAME: Basic-auth username
     GOTENBERG_PASSWORD: Basic-auth password
@@ -100,15 +102,16 @@ en:
     FONT_SIZE: Font size
     POINTS: pt
     FONT_BODY: Body font
-    FONT_BODY_HELP: "The text, the tables, the dateline and the running header and footer. One of the four DejaVu faces mPDF carries, or a family you added with Font directory."
+    FONT_BODY_HELP: "The text, the tables, the dateline and the running header and footer. One of the bundled DejaVu faces, or a family you added with Font directory."
     FONT_HEADINGS: Heading font
     FONT_HEADINGS_HELP: "Headings h1–h6 and the document's own titles: the cover title, the contents heading and its lines. The running header and footer keep the body font, unless you write a heading in their HTML."
     FONT_SANS: Sans — DejaVu Sans
     FONT_SANS_CONDENSED: Sans condensed — DejaVu Sans Condensed
     FONT_SERIF: Serif — DejaVu Serif
     FONT_SERIF_CONDENSED: Serif condensed — DejaVu Serif Condensed
+    FONT_MONO: Monospace — DejaVu Sans Mono
     FONT_DIR: Font directory
-    FONT_DIR_HELP: "Where your own .ttf files live, e.g. user-data://pdf/fonts. Each family is read from its file names: MyFont-Regular.ttf, MyFont-Bold.ttf, MyFont-Italic.ttf, MyFont-BoldItalic.ttf. Then set Body font or Heading font to myfont."
+    FONT_DIR_HELP: "Where your own .ttf files live, e.g. user-data://pdf/fonts. Each family is read from its file names: MyFont-Regular.ttf, MyFont-Bold.ttf, MyFont-Italic.ttf, MyFont-BoldItalic.ttf. Save, then choose the family in Body font or Heading font."
     MARGINS: Margins
     MARGIN_TOP: Top
     MARGIN_BOTTOM: Bottom
@@ -172,14 +175,16 @@ de:
     ALL_PAGES_HELP: "Standardmäßig aus: eine Seite schaltet sich mit pdf: { enabled: true } im eigenen Frontmatter ein."
     RENDERER: PDF-Renderer
     ENGINE: PDF-Engine
-    ENGINE_HELP: "mPDF ist enthalten und immer verfügbar. Gotenberg verwendet einen externen Gotenberg-Dienst ab Version 9."
+    ENGINE_HELP: "php-pdf ist enthalten und immer verfügbar. Gotenberg verwendet einen externen Gotenberg-Dienst ab Version 9."
+    ENGINE_PHP_PDF: php-pdf (enthalten)
+    ENGINE_GOTENBERG: Gotenberg (extern)
     GOTENBERG_URL: Gotenberg-Adresse
     GOTENBERG_URL_HELP: "Host mit optionalem Port, z. B. 127.0.0.1:3000, oder eine vollständige http(s)-URL. Gotenberg ist nicht enthalten."
     GOTENBERG_TEST: Gotenberg-Verbindung testen
     GOTENBERG_TIMEOUT: Zeitlimit für die PDF-Erzeugung
     GOTENBERG_CONNECT_TIMEOUT: Verbindungszeitlimit
-    GOTENBERG_FALLBACK: Auf mPDF zurückfallen
-    GOTENBERG_FALLBACK_HELP: "Wenn Gotenberg die PDF nicht erzeugen kann, erstellt das enthaltene mPDF sie stattdessen."
+    GOTENBERG_FALLBACK: Auf php-pdf zurückfallen
+    GOTENBERG_FALLBACK_HELP: "Wenn Gotenberg die PDF nicht erzeugen kann, erstellt die enthaltene php-pdf-Engine sie stattdessen."
     GOTENBERG_RETRY: Nach einem Fehler erneut versuchen
     GOTENBERG_USERNAME: Benutzername für Basic-Auth
     GOTENBERG_PASSWORD: Passwort für Basic-Auth
@@ -252,15 +257,16 @@ de:
     FONT_SIZE: Schriftgröße
     POINTS: pt
     FONT_BODY: Grundschrift
-    FONT_BODY_HELP: "Der Text, die Tabellen, die Datumszeile sowie Kopf- und Fußzeile. Einer der vier DejaVu-Schnitte von mPDF oder eine eigene Schrift aus dem Schriftverzeichnis."
+    FONT_BODY_HELP: "Der Text, die Tabellen, die Datumszeile sowie Kopf- und Fußzeile. Einer der enthaltenen DejaVu-Schnitte oder eine eigene Schrift aus dem Schriftverzeichnis."
     FONT_HEADINGS: Schrift der Überschriften
     FONT_HEADINGS_HELP: "Überschriften h1–h6 und die Titel des Dokuments: Deckblatt-Titel, Inhaltsüberschrift und deren Zeilen. Kopf- und Fußzeile behalten die Grundschrift, sofern Sie dort keine Überschrift schreiben."
     FONT_SANS: Serifenlos — DejaVu Sans
     FONT_SANS_CONDENSED: Serifenlos schmal — DejaVu Sans Condensed
     FONT_SERIF: Serif — DejaVu Serif
     FONT_SERIF_CONDENSED: Serif schmal — DejaVu Serif Condensed
+    FONT_MONO: Nichtproportional — DejaVu Sans Mono
     FONT_DIR: Schriftverzeichnis
-    FONT_DIR_HELP: "Wo Ihre eigenen .ttf-Dateien liegen, z. B. user-data://pdf/fonts. Die Familie ergibt sich aus den Dateinamen: MyFont-Regular.ttf, MyFont-Bold.ttf, MyFont-Italic.ttf, MyFont-BoldItalic.ttf. Dann Grund- oder Überschriftenschrift auf myfont setzen."
+    FONT_DIR_HELP: "Wo Ihre eigenen .ttf-Dateien liegen, z. B. user-data://pdf/fonts. Die Familie ergibt sich aus den Dateinamen: MyFont-Regular.ttf, MyFont-Bold.ttf, MyFont-Italic.ttf, MyFont-BoldItalic.ttf. Speichern, dann die Familie unter Grund- oder Überschriftenschrift wählen."
     MARGINS: Seitenränder
     MARGIN_TOP: Oben
     MARGIN_BOTTOM: Unten
@@ -324,14 +330,16 @@ ru:
     ALL_PAGES_HELP: "По умолчанию выключено: страница включается через pdf: { enabled: true } в её заголовке."
     RENDERER: Обработчик PDF
     ENGINE: Движок PDF
-    ENGINE_HELP: "mPDF встроен и всегда доступен. Gotenberg использует внешний сервис Gotenberg версии 9 или новее."
+    ENGINE_HELP: "php-pdf встроен и всегда доступен. Gotenberg использует внешний сервис Gotenberg версии 9 или новее."
+    ENGINE_PHP_PDF: php-pdf (встроенный)
+    ENGINE_GOTENBERG: Gotenberg (внешний)
     GOTENBERG_URL: Адрес Gotenberg
     GOTENBERG_URL_HELP: "Имя хоста и необязательный порт, например 127.0.0.1:3000, или полный URL http(s). Gotenberg не входит в состав плагина."
     GOTENBERG_TEST: Проверить соединение с Gotenberg
     GOTENBERG_TIMEOUT: Тайм-аут создания PDF
     GOTENBERG_CONNECT_TIMEOUT: Тайм-аут соединения
-    GOTENBERG_FALLBACK: Переключаться на mPDF
-    GOTENBERG_FALLBACK_HELP: "Если Gotenberg не может создать PDF, документ создаётся встроенным mPDF."
+    GOTENBERG_FALLBACK: Переключаться на php-pdf
+    GOTENBERG_FALLBACK_HELP: "Если Gotenberg не может создать PDF, документ создаётся встроенной php-pdf-машиной."
     GOTENBERG_RETRY: Повтор после ошибки
     GOTENBERG_USERNAME: Имя пользователя Basic-Auth
     GOTENBERG_PASSWORD: Пароль Basic-Auth
@@ -404,15 +412,16 @@ ru:
     FONT_SIZE: Размер шрифта
     POINTS: пт
     FONT_BODY: Шрифт текста
-    FONT_BODY_HELP: "Текст, таблицы, строка с датой, а также верхний и нижний колонтитулы. Один из четырёх шрифтов DejaVu, входящих в mPDF, или свой шрифт из каталога шрифтов."
+    FONT_BODY_HELP: "Текст, таблицы, строка с датой, а также верхний и нижний колонтитулы. Один из встроенных шрифтов DejaVu или свой шрифт из каталога шрифтов."
     FONT_HEADINGS: Шрифт заголовков
     FONT_HEADINGS_HELP: "Заголовки h1–h6 и названия самого документа: титульная страница, заголовок оглавления и его строки. Верхний и нижний колонтитулы остаются в шрифте текста, если вы не впишете туда заголовок."
     FONT_SANS: Без засечек — DejaVu Sans
     FONT_SANS_CONDENSED: Без засечек узкий — DejaVu Sans Condensed
     FONT_SERIF: С засечками — DejaVu Serif
     FONT_SERIF_CONDENSED: С засечками узкий — DejaVu Serif Condensed
+    FONT_MONO: Моноширинный — DejaVu Sans Mono
     FONT_DIR: Каталог шрифтов
-    FONT_DIR_HELP: "Где лежат ваши файлы .ttf, например user-data://pdf/fonts. Семейство определяется по именам файлов: MyFont-Regular.ttf, MyFont-Bold.ttf, MyFont-Italic.ttf, MyFont-BoldItalic.ttf. Затем укажите myfont в шрифте текста или заголовков."
+    FONT_DIR_HELP: "Где лежат ваши файлы .ttf, например user-data://pdf/fonts. Семейство определяется по именам файлов: MyFont-Regular.ttf, MyFont-Bold.ttf, MyFont-Italic.ttf, MyFont-BoldItalic.ttf. Сохраните, затем выберите семейство в шрифте текста или заголовков."
     MARGINS: Поля
     MARGIN_TOP: Сверху
     MARGIN_BOTTOM: Снизу

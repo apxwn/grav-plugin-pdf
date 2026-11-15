@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Download Liberation 2.1.5 fonts to .cache/fonts/ for POC use.
+# Idempotent: skips if already cached.
+set -euo pipefail
+
+CACHE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.cache/fonts"
+mkdir -p "$CACHE_DIR"
+cd "$CACHE_DIR"
+
+EXTRACT_DIR="liberation-fonts-ttf-2.1.5"
+if [ -f "$EXTRACT_DIR/LiberationSans-Regular.ttf" ]; then
+    echo "Liberation 2.1.5 already cached at $CACHE_DIR/$EXTRACT_DIR"
+else
+    URL="https://github.com/liberationfonts/liberation-fonts/files/7261482/liberation-fonts-ttf-2.1.5.tar.gz"
+    echo "Downloading Liberation 2.1.5 from $URL..."
+    curl -sL "$URL" -o liberation.tar.gz
+
+    EXPECTED_SHA="76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8"
+    # Note: the expected SHA is for LiberationSans-Regular.ttf inside the
+    # tarball, not for the tarball itself. Verify after extraction.
+
+    tar -xzf liberation.tar.gz
+    rm liberation.tar.gz
+
+    ACTUAL_SHA=$(shasum -a 256 "$EXTRACT_DIR/LiberationSans-Regular.ttf" | awk '{print $1}')
+    if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+        echo "ERROR: SHA256 mismatch for LiberationSans-Regular.ttf"
+        echo "Expected: $EXPECTED_SHA"
+        echo "Actual:   $ACTUAL_SHA"
+        exit 1
+    fi
+    echo "Done. Fonts at $CACHE_DIR/$EXTRACT_DIR"
+fi
+
+# Extra fonts for the torture set (examples/torture): Arabic + CJK coverage.
+#   Amiri (SIL OFL 1.1) — Arabic shaping/bidi reference face.
+#   DroidSansFallback (Apache 2.0) — CJK ideographs + kana, TrueType glyf.
+# And a CFF-outline OpenType font (tests/Pdf/CffFontEmbeddingTest, conformance):
+#   Source Sans 3 (SIL OFL 1.1) — static .otf with a 'CFF ' table.
+fetch_font() {
+    local file="$1" url="$2" sha="$3"
+    if [ -f "$file" ]; then
+        echo "$file already cached"
+        return 0
+    fi
+    echo "Downloading $file..."
+    curl -sL "$url" -o "$file"
+    local actual
+    actual=$(shasum -a 256 "$file" | awk '{print $1}')
+    if [ "$actual" != "$sha" ]; then
+        echo "ERROR: SHA256 mismatch for $file"
+        echo "Expected: $sha"
+        echo "Actual:   $actual"
+        rm -f "$file"
+        exit 1
+    fi
+}
+
+fetch_font "Amiri-Regular.ttf" \
+    "https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Regular.ttf" \
+    "ab391c4147d054c48976e98322ad0eefe1427aa0e0502a12a4c75d80a70cfcd7"
+
+fetch_font "DroidSansFallback.ttf" \
+    "https://raw.githubusercontent.com/aosp-mirror/platform_frameworks_base/nougat-release/data/fonts/DroidSansFallback.ttf" \
+    "56d3edfb377a8bc3c4b77f4476405c770173c0e31221ad7c77d0a8e1f3039a3e"
+
+fetch_font "SourceSans3-Regular.otf" \
+    "https://raw.githubusercontent.com/adobe-fonts/source-sans/3.052R/OTF/SourceSans3-Regular.otf" \
+    "08df266400933d3178d081a45f94a08814c3e55b4b7dd2e0ff69cb1329f13ab6"

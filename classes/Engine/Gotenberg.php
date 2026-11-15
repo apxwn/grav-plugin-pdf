@@ -13,14 +13,14 @@ use Grav\Plugin\PdfPlugin;
 /**
  * Renders through an external Gotenberg service.
  *
- * Gotenberg converts HTML with headless Chromium, so the same document mPDF
- * sets is laid out by a browser engine instead: proper CJK and emoji, real CSS
- * tables, correct page breaks — at the cost of a round trip to a service the
- * site has to run itself. The plugin bundles nothing; `gotenberg.url` points at
- * a container the administrator started.
+ * Gotenberg converts HTML with headless Chromium, so the same document the
+ * built-in engine sets is laid out by a browser engine instead: proper CJK and
+ * emoji, real CSS tables, correct page breaks — at the cost of a round trip to
+ * a service the site has to run itself. The plugin bundles nothing;
+ * `gotenberg.url` points at a container the administrator started.
  *
- * Three things differ from the mPDF path, all of them because Chromium is not
- * mPDF:
+ * Three things differ from the built-in path, all of them because Chromium is
+ * not php-pdf:
  *
  *  - page geometry is passed to the service, not to a stylesheet, and the
  *    header and footer are separate documents that cannot see the page's CSS,
@@ -29,13 +29,14 @@ use Grav\Plugin\PdfPlugin;
  *    after layout, so the contents links without numbers;
  *  - it makes a bookmark of every heading, so anything deeper than `toc_depth`
  *    is turned into a styled paragraph — the ids stay, the outline matches what
- *    mPDF produces.
+ *    the built-in engine produces.
  */
 final class Gotenberg implements Engine
 {
     /**
-     * Paper names, which the two engines spell differently: mPDF takes `A4`
-     * but also `letter`, Gotenberg wants `Letter` and knows nothing else.
+     * Paper names, which the two engines spell differently: the built-in engine
+     * takes `A4` but also `letter`, Gotenberg wants `Letter` and knows nothing
+     * else.
      */
     private const PAPER = [
         'a3' => 'A3',
@@ -159,10 +160,10 @@ final class Gotenberg implements Engine
      * Give every linkable heading an id, and demote the ones Chromium would
      * bookmark but `toc_depth` says are not part of the structure.
      *
-     * `nativeBookmarks` outlines every `<h1>`–`<h6>` it can find, where mPDF
-     * obeys `h2toc`/`h2bookmarks`. Demoting the deeper headings keeps the two
-     * engines' outlines the same — and the id survives the demotion, so a link
-     * into the text still lands where it should.
+     * `nativeBookmarks` outlines every `<h1>`–`<h6>` it can find, where the
+     * built-in engine obeys `toc_depth`. Demoting the deeper headings keeps the
+     * two engines' outlines the same — and the id survives the demotion, so a
+     * link into the text still lands where it should.
      *
      * @return array{0: string, 1: array<int, array{level: int, text: string, href: string}>}
      */
@@ -189,7 +190,8 @@ final class Gotenberg implements Engine
                 }
 
                 // The contents lists the articles and, when `toc_depth` allows
-                // it, their h2s — the same two levels mPDF's h2toc knows.
+                // it, their h2s — the same two levels the built-in engine
+                // knows.
                 if ($level === 2 && $depth >= 2) {
                     $toc[] = [
                         'level' => 1,
@@ -211,10 +213,11 @@ final class Gotenberg implements Engine
     }
 
     /**
-     * The `@font-face` rules that give Chromium the same faces mPDF would use.
+     * The `@font-face` rules that give Chromium the same faces the built-in
+     * engine would use.
      *
-     * Chromium can only use a font it can load, and the service has none of
-     * mPDF's: the files go with the request. `font-display: block` keeps the
+     * Chromium can only use a font it can load, and the service has none of the
+     * plugin's: the files go with the request. `font-display: block` keeps the
      * fallback out of the first page while the file is being read.
      */
     private function fontCss(Document $document, Assets $assets): string
@@ -390,7 +393,7 @@ final class Gotenberg implements Engine
         $paper = strtolower(trim((string) $settings['paper']));
         $landscape = strtoupper((string) $settings['orientation']) === 'L';
 
-        // mPDF accepts "A4-L" as portrait paper plus a suffix; the suffix is
+        // A paper name may carry an orientation suffix ("A4-L"); the suffix is
         // the orientation here too.
         if (str_ends_with($paper, '-l')) {
             $paper = substr($paper, 0, -2);

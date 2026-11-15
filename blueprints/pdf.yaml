@@ -58,22 +58,14 @@ form:
                   toggleable: true
                   label: PLUGIN_PDF.FONT_BODY
                   help: PLUGIN_PDF.FONT_BODY_HELP
-                  options:
-                    dejavusans: PLUGIN_PDF.FONT_SANS
-                    dejavusanscondensed: PLUGIN_PDF.FONT_SANS_CONDENSED
-                    dejavuserif: PLUGIN_PDF.FONT_SERIF
-                    dejavuserifcondensed: PLUGIN_PDF.FONT_SERIF_CONDENSED
+                  data-options@: '\Grav\Plugin\Pdf\Admin::fontOptions'
 
                 header.pdf.font_headings:
                   type: select
                   toggleable: true
                   label: PLUGIN_PDF.FONT_HEADINGS
                   help: PLUGIN_PDF.FONT_HEADINGS_HELP
-                  options:
-                    dejavusans: PLUGIN_PDF.FONT_SANS
-                    dejavusanscondensed: PLUGIN_PDF.FONT_SANS_CONDENSED
-                    dejavuserif: PLUGIN_PDF.FONT_SERIF
-                    dejavuserifcondensed: PLUGIN_PDF.FONT_SERIF_CONDENSED
+                  data-options@: '\Grav\Plugin\Pdf\Admin::fontOptions'
 
                 header.pdf.cover:
                   type: toggle

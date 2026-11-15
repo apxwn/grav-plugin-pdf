@@ -15,7 +15,8 @@ use Grav\Plugin\Pdf\Paths;
  * The site asks for an engine; the Router decides which one actually builds
  * the document. Gotenberg is an external service, so "the address answers"
  * is not something the plugin can assume: when it does not, the document is
- * still produced, by mPDF, and the response says which engine ran.
+ * still produced, by the built-in engine, and the response says which engine
+ * ran.
  *
  * Two rules keep that predictable:
  *
@@ -40,11 +41,11 @@ final class Router
     public function plan(): string
     {
         if ($this->config->engine() !== 'gotenberg') {
-            return 'mpdf';
+            return 'php-pdf';
         }
 
         if ($this->url() === '') {
-            return 'mpdf';
+            return 'php-pdf';
         }
 
         $breaker = $this->breaker();
@@ -57,7 +58,7 @@ final class Router
                 $breaker->reason()
             ));
 
-            return 'mpdf';
+            return 'php-pdf';
         }
 
         return 'gotenberg';
@@ -66,16 +67,16 @@ final class Router
     /**
      * Build the document and report which engine produced it.
      *
-     * @return string `mpdf` or `gotenberg`
+     * @return string `php-pdf` or `gotenberg`
      *
      * @throws Unavailable when Gotenberg failed and falling back is turned off
      */
     public function render(Document $document, string $file): string
     {
         if ($this->plan() !== 'gotenberg') {
-            (new Mpdf($this->grav, $this->config))->render($document, $file);
+            (new PhpPdf($this->grav, $this->config))->render($document, $file);
 
-            return 'mpdf';
+            return 'php-pdf';
         }
 
         $breaker = $this->breaker();
@@ -91,7 +92,7 @@ final class Router
             }
 
             $this->grav['log']->warning(sprintf(
-                'PDF: Gotenberg at %s could not build the document (%s); falling back to mPDF.',
+                'PDF: Gotenberg at %s could not build the document (%s); falling back to php-pdf.',
                 $this->url(),
                 $e->getMessage()
             ));
@@ -100,9 +101,9 @@ final class Router
                 $breaker->trip($e->getMessage(), $this->url());
             }
 
-            (new Mpdf($this->grav, $this->config))->render($document, $file);
+            (new PhpPdf($this->grav, $this->config))->render($document, $file);
 
-            return 'mpdf';
+            return 'php-pdf';
         }
     }
 
@@ -115,7 +116,7 @@ final class Router
     }
 
     /**
-     * Is a Gotenberg failure allowed to degrade to mPDF?
+     * Is a Gotenberg failure allowed to degrade to the built-in engine?
      */
     private function fallback(): bool
     {

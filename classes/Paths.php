@@ -8,11 +8,11 @@ use Grav\Common\Grav;
  * Where the plugin writes at runtime.
  *
  * Nothing is written inside the plugin folder any more: generated documents and
- * mPDF's working files both live under Grav's own cache stream, so a plugin
- * update, a read-only plugin directory or a `bin/grav clear-cache` behaves the
- * way an administrator expects. `cache_path` moves the document cache elsewhere
- * when a site wants it on another disk; the working directory always sits next
- * to it.
+ * the plugin's working files both live under Grav's own cache stream, so a
+ * plugin update, a read-only plugin directory or a `bin/grav clear-cache`
+ * behaves the way an administrator expects. `cache_path` moves the document
+ * cache elsewhere when a site wants it on another disk; the working directory
+ * always sits next to it.
  *
  * `cache://` resolves through Grav's locator, so a site that has moved its cache
  * outside the document root, or renamed it with `GRAV_CACHE_PATH`, needs no
@@ -42,7 +42,7 @@ final class Paths
     }
 
     /**
-     * mPDF's working directory: font metrics, temporary files, scaled images.
+     * The plugin's working directory: scaled image copies, temporary files.
      */
     public static function tmpDir(Grav $grav, Config $config): string
     {

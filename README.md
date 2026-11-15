@@ -16,9 +16,9 @@ before until its frontmatter opts in, so the plugin can be shipped enabled.
 * A `.pdf` request that has not been opted in is a plain 404.
 * The text is only ever in the language being served. A page that exists only in German
   is simply not exportable as a Russian PDF.
-* All assets are local. Fonts come from the DejaVu faces bundled with mPDF (Latin, Greek
-  and Cyrillic), chosen with `font_body` and `font_headings`; families of your own can be
-  added from a folder of `.ttf` files. Nothing is downloaded at render time.
+* All assets are local. Fonts come from the DejaVu faces bundled with the plugin (Latin,
+  Greek and Cyrillic), chosen with `font_body` and `font_headings`; families of your own
+  can be added from a folder of `.ttf` files. Nothing is downloaded at render time.
 * No theme file is touched or required. The print templates live in the plugin, in their
   own Twig namespace (`@pdf/…`), so the PDF looks the same whichever theme is active.
 
@@ -28,8 +28,8 @@ before until its frontmatter opts in, so the plugin can be shipped enabled.
 
 ### As a release archive
 
-Unpack into `user/plugins/pdf/` — mPDF is bundled in `vendor/`, so there is nothing to
-build:
+Unpack into `user/plugins/pdf/` — the renderer is bundled in `vendor/`, so there is
+nothing to build:
 
 ```bash
 cd user/plugins
@@ -55,9 +55,9 @@ rm -rf cache/twig/*
 
 | | |
 |---|---|
-| Grav | 1.7 or later (tested on 2.2.9) |
-| PHP | 8.1 or later |
-| mPDF | 8.2 or later — bundled, always available as the default and fallback |
+| Grav | 1.7 or later (tested on 2.2.29) |
+| PHP | 8.2 or later, with `ext-dom`, `ext-mbstring` and `ext-zlib` |
+| php-pdf | bundled, always available as the default and fallback renderer |
 | Gotenberg | 9 or later — optional external service; PHP cURL extension required |
 
 ### Plugin layout
@@ -69,30 +69,28 @@ user/plugins/pdf/
 ├── blueprints.yaml          the plugin's Admin screen
 ├── blueprints/pdf.yaml      the "PDF" tab added to every page in Admin
 ├── languages.yaml           button captions and Admin labels (en, de, ru)
-├── classes/                 Config, Items, Html, Store, Paths, Generator, State
+├── classes/                 Config, Items, Html, Store, Paths, Generator, State, Admin
+├── classes/Engine/          the renderers: PhpPdf, Gotenberg, Router
+├── fonts/                   the DejaVu faces the plugin embeds
 ├── templates/pdf/           print templates + the example button partial
-├── composer.json            mPDF dependency
-└── vendor/                  mPDF itself
+├── composer.json            php-pdf dependency
+└── vendor/                  php-pdf itself
 ```
 
-### About the bundled mPDF
+### About the bundled renderer
 
-mPDF ships 65 font files covering every script it might be asked to render — 76 MB, most
-of it CJK, Arabic, Tibetan, Hebrew, Indic and specialist fonts. The release archive keeps
-only what this plugin can reach: the DejaVu family, which is the configured default, and
-the Free family, which is mPDF's own declared generic fallback. That takes mPDF from 95 MB
-to 27 MB.
+`dskripchenko/php-pdf` is a pure-PHP PDF toolkit with no runtime dependencies of its own,
+so `vendor/` is a single package of about 7 MB. It reads HTML and CSS, embeds and subsets
+TrueType fonts, and writes the document straight to a file.
 
-Latin, Cyrillic and Greek are covered by every DejaVu face, and the four that remain — Sans
-and Serif, each plain and condensed — are the ones `font_body` and `font_headings` choose
-between. Their mono companion is kept as well, for anything that asks for a monospace face.
+The fonts are the plugin's own, in `fonts/`: DejaVu Sans, DejaVu Sans Condensed, DejaVu
+Serif, DejaVu Serif Condensed and DejaVu Sans Mono, each in regular, bold, italic and
+bold-italic. Between them they cover Latin, Greek and Cyrillic, and none of them has to be
+downloaded or installed. `font_body` and `font_headings` choose between them — in the
+Admin they are a dropdown, not a text field.
 
-If a site ever carries content in another script, restore the full set and add the matching
-font:
-
-```bash
-php bin/composer.phar --working-dir=user/plugins/pdf install --no-dev --no-interaction
-```
+A site that carries content in another script adds a font of its own; see
+[Fonts](#fonts) below.
 
 ---
 
@@ -231,8 +229,8 @@ settings are site-wide: a page cannot choose a host or engine.
 
 ### Renderer
 
-mPDF is bundled and remains the default. To use the optional external Gotenberg service, set
-its address and select it as the engine:
+php-pdf is bundled and remains the default. To use the optional external Gotenberg service,
+set its address and select it as the engine:
 
 ```yaml
 engine: gotenberg
@@ -251,12 +249,12 @@ The address may be `host:port`, a hostname, or a full `http://` / `https://` URL
 Admin's **Test Gotenberg connection** button and `bin/plugin pdf gotenberg:test` use the
 configured address and credentials to check `/version` and `/health`.
 
-With fallback enabled (the default), a failed conversion is automatically rendered by mPDF.
-The PDF response reports the actual renderer in `X-PDF-Engine`; failures are logged and a
-short-lived breaker avoids waiting on an unavailable host for every request. Turning fallback
-off makes a Gotenberg failure an error instead.
+With fallback enabled (the default), a failed conversion is automatically rendered by
+php-pdf. The PDF response reports the actual renderer in `X-PDF-Engine`; failures are logged
+and a short-lived breaker avoids waiting on an unavailable host for every request. Turning
+fallback off makes a Gotenberg failure an error instead.
 
-Gotenberg uses Chromium rather than mPDF. A book's contents are links-only because page
+Gotenberg uses Chromium rather than php-pdf. A book's contents are links-only because page
 numbers are unknown before layout; the cover and articles are kept in one HTML document so
 anchors, footnotes and named destinations survive. Its PDF outline follows `toc_depth`.
 Fonts used by the document are uploaded with each conversion. Running headers/footers are
@@ -449,20 +447,20 @@ strip_shortcodes: [gallery, carousel]
 | `font_body` | `dejavusans` | the text, tables, dateline, and the running header and footer |
 | `font_headings` | `dejavusans` | headings `h1`–`h6`, the cover title, the contents heading and the lines of the contents |
 
-Both are one of the four DejaVu faces mPDF carries — `dejavusans`, `dejavusanscondensed`,
-`dejavuserif`, `dejavuserifcondensed` — so nothing is downloaded and no font file is added.
-Latin, Greek and Cyrillic are covered by all four, and Cyrillic and Greek are set in the
-chosen face too: mPDF's own script-to-font substitution, which would otherwise put them in
-DejaVu Sans Condensed whatever was chosen, is switched off.
+Both are one of the five DejaVu faces the plugin ships — `dejavusans`,
+`dejavusanscondensed`, `dejavuserif`, `dejavuserifcondensed`, `dejavusansmono` — so nothing
+is downloaded and no font file is added. In the Admin they are a dropdown, so nobody has to
+type a family name. Latin, Greek and Cyrillic are covered by all five, and Cyrillic and
+Greek are set in the chosen face too, not in some substitute.
 
 The running header and footer are HTML you write, so they keep the body font. Write a
 heading in them and it follows `font_headings` like any other heading. A name the plugin
-does not recognise falls back to `dejavusans` with a warning in the log, rather than letting
-mPDF substitute a face silently.
+does not recognise falls back to `dejavusans` with a warning in the log, rather than
+substituting a face silently.
 
 #### Fonts of your own
 
-Put the `.ttf` files in a folder, point `font_dir` at it, and name the family in
+Put the `.ttf` files in a folder, point `font_dir` at it, and pick the family in
 `font_body` or `font_headings`. The family is read from the file names:
 
 ```
@@ -476,10 +474,14 @@ font_body: myfont
 ```
 
 The family name is lower-cased and stripped to letters and digits, so `My Font` above is
-`myfont`. Only the regular face is required; a missing bold or italic is substituted by
-mPDF. `font_dir` accepts one path or a list, and each may be a stream
+`myfont`. Only the regular face is required; a missing bold or italic is substituted by the
+nearest face the family has. `font_dir` accepts one path or a list, and each may be a stream
 (`user-data://pdf/fonts`, a folder in Grav's data stream), an absolute path, or a path
 relative to the Grav root.
+
+Once `font_dir` is saved, the family appears in the Admin dropdowns alongside the built-in
+faces — the list is built when the form is drawn, so reload the settings screen after
+changing the directory.
 
 When a site's file names do not follow that convention, declare the mapping instead — this
 also works for a file outside `font_dir`, given as a path:
@@ -507,21 +509,21 @@ fonts:
     B: 'user-data://pdf/fonts/MyFont-Bold.ttf'
 ```
 
-The plugin resolves the path and hands mPDF a name that leads back to that exact file, so
-two folders may hold fonts of the same name without one shadowing the other. A path that
-does not exist stops the document with an error rather than printing in a substitute face.
+The plugin resolves the path and hands the renderer a name that leads back to that exact
+file, so two folders may hold fonts of the same name without one shadowing the other. A path
+that does not exist stops the document with an error rather than printing in a substitute
+face.
 
-Fonts are embedded and subsetted by mPDF, so a document grows by roughly the glyphs it
-actually uses, not by the size of the face.
+Fonts are embedded and subsetted, so a document grows by roughly the glyphs it actually
+uses, not by the size of the face.
 
 #### Scripts the bundled fonts do not cover
 
 DejaVu covers Latin, Greek and Cyrillic. Arabic, Hebrew, the Indic scripts, Thai and the CJK
-scripts need a font that has them, and font shaping — mPDF does no shaping without an
-appropriate `fontdata` entry and, for Indic and Arabic, a configured `autoScriptToLang`.
-The practical route is a font from the [Noto](https://fonts.google.com/noto) family for the
-script in question, added with `font_dir` and the mapping above. Without such a font, a
-glyph outside DejaVu falls back to nothing and is logged as a missing character.
+scripts need a font that has them. The practical route is a font from the
+[Noto](https://fonts.google.com/noto) family for the script in question, added with
+`font_dir` and the mapping above. Without such a font, a glyph outside DejaVu falls back to
+nothing and is logged as a missing character.
 
 ### Cache and guards
 
@@ -545,8 +547,7 @@ with `304`.
 Generated documents live in Grav's cache stream, so `bin/grav clear-cache` empties them
 along with everything else and nothing has to be writable inside the plugin folder.
 `cache_path` moves them elsewhere; a stream, an absolute path or a Grav-root-relative path
-all work, and mPDF's working files follow them into a `tmp/` subfolder. The directory is
-created on demand.
+all work. The directory is created on demand.
 
 `max_items` is a guard, not a limit: a collection larger than it produces `HTTP 413` with a
 plain-text explanation, rather than a request that never finishes. A 200-page book takes a
@@ -588,6 +589,8 @@ pdf:
     meta: [date, category, author]
     images: false
     images_max: 20
+    font_body: dejavuserifcondensed
+    font_headings: dejavusans
     header: '{LOGO}'
     footer: ''
     logo: 'theme://images/logo.svg'
@@ -613,10 +616,9 @@ request is a 404 — finds the page, checks the opt-in, streams the document and
 page template and no theme template is involved in a `.pdf` request.
 
 *The documents.* A print stylesheet, a cover, a table of contents and one article per entry
-are rendered from the plugin's own Twig templates through Grav's Twig environment. mPDF's
-page boxes (`@page` / `@page :first`, registered with `DefHTMLHeaderByName`) carry the
-running header and footer; the imperative `SetHTMLHeader()` API loses the header on the page
-after the table of contents and is not used.
+are rendered from the plugin's own Twig templates through Grav's Twig environment. The
+built-in engine lays the result out as a `Section` with header and footer blocks, and gives
+the cover a blank first page so the running header starts on page two.
 
 *The contents.* Article titles are injected as `<h1>`, which is what the table of contents
 and the PDF bookmarks are built from. Breadcrumb-style metadata (date, category, author)
@@ -626,30 +628,29 @@ sits under each title.
 `<script>`, `<style>`, `<iframe>`, `<form>`, `<video>`, `<audio>`, `<object>`, `<embed>`,
 `<svg>`, `<canvas>`, `<map>`, `<noscript>`, form controls, and shortcodes whose plugin is
 not installed. Images are dropped unless the page opted in; when they are kept they are
-pointed at local files — mPDF fetching over HTTP breaks under a single-threaded dev server,
-and behind a firewall it can hang — and scaled down first.
+pointed at local files — a renderer fetching over HTTP breaks under a single-threaded dev
+server, and behind a firewall it can hang — and scaled down first.
 
 *The links.* A `[TOC]` entry, a footnote reference and its way back, and a hand-written
-`](#…)` anchor all jump within the document. mPDF registers a link target only for an
-anchor written as `<a name="…">` — an element's `id` means nothing to it, and a link to one
-is left without a destination — so the body is given an `<a name>` for every `id` it
-carries. The anchors are placed inside the element they name, where they join its first
-line, so nothing shifts: the same content gives the same page count and the same page
-numbers. A list item and a link are the exceptions, and take theirs in front; see
-`Html::anchors()` for why.
+`](#…)` anchor all jump within the document. The built-in engine registers a link target for
+a heading's `id` and for an `<a name="…">`, and for nothing else — an element carrying only
+an `id` is not a target — so the body is given an `<a name>` for every `id` it carries. The
+anchors are placed inside the element they name, where they join its first line, so nothing
+shifts: the same content gives the same page count and the same page numbers. A list item
+and a link are the exceptions, and take theirs in front; see `Html::anchors()` for why.
 
 In a book every entry also gets a namespace of its own — `pdf3:fn:1` — on its ids and on the
 fragment links pointing at them. Each article numbers its own footnotes from one and names
-its headings after its own text, so names repeat by construction, and mPDF keys anchors by
-name alone: without the namespace every `fn:1` link in the book resolves to the last article
-that had one. A single article is not namespaced.
+its headings after its own text, so names repeat by construction, and a named destination is
+keyed by name alone: without the namespace every `fn:1` link in the book resolves to the last
+article that had one. A single article is not namespaced.
 
 *The language.* `Page::collection()` injects `filter: translated: true`, and the plugin
 additionally requires the active language to be among the page's `translatedLanguages(true)`.
 A PDF therefore never mixes in a language-fallback page.
 
-*The fonts.* mPDF's bundled DejaVu faces, plus anything a site adds with `font_dir`. Nothing
-is downloaded at render time.
+*The fonts.* The DejaVu faces in `fonts/`, plus anything a site adds with `font_dir`.
+Nothing is downloaded at render time.
 
 ---
 
@@ -698,5 +699,5 @@ text with no images come to well under a megabyte.
 
 ## 8. Licence
 
-GPL-2.0-only. mPDF is GPL-2.0-only as well, which is what settles the choice. See
-[LICENSE](LICENSE) and [CREDITS.md](CREDITS.md) for the bundled components and their terms.
+MIT. See [LICENSE](LICENSE) and [CREDITS.md](CREDITS.md) for the bundled components and
+their terms.

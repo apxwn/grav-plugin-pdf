@@ -1,14 +1,14 @@
 name: PDF
 slug: pdf
 type: plugin
-version: 1.3.1
+version: 1.4.0
 description: "Generate a PDF of a page — a single article, or a whole collection as a book."
 icon: file-pdf
 author:
   name: Roman Bannack
   email: kontakt@orthodox-dresden.de
 homepage: https://github.com/apxwn/grav-plugin-pdf
-license: GPL-2.0-only
+license: MIT
 readme: https://github.com/apxwn/grav-plugin-pdf/blob/main/README.md
 
 keywords:
@@ -16,11 +16,11 @@ keywords:
   - ebook
   - export
   - print
-  - mpdf
+  - php-pdf
 
 dependencies:
   - { name: grav, version: '>=1.7.0' }
-  - { name: php, version: '>=8.1' }
+  - { name: php, version: '>=8.2' }
 
 form:
   validation: loose
@@ -71,10 +71,10 @@ form:
           type: select
           label: PLUGIN_PDF.ENGINE
           help: PLUGIN_PDF.ENGINE_HELP
-          default: mpdf
+          default: php-pdf
           options:
-            mpdf: mPDF (bundled)
-            gotenberg: Gotenberg (external)
+            php-pdf: PLUGIN_PDF.ENGINE_PHP_PDF
+            gotenberg: PLUGIN_PDF.ENGINE_GOTENBERG
 
         gotenberg.url:
           type: text
@@ -367,21 +367,24 @@ form:
           label: PLUGIN_PDF.FONT_SIZE
           append: PLUGIN_PDF.POINTS
 
-        # Text rather than a select on purpose: a site that added a family of its
-        # own can type its name, which a fixed option list would not allow. The
-        # help text names the built-in faces, and an unknown name falls back to
-        # DejaVu Sans with a warning in the log rather than silently.
+        # A dropdown, not a text field: the value is a family name the renderer
+        # has to know, and nobody should have to type `dejavuserifcondensed`.
+        # The list is built when the form is drawn (classes/Admin.php), so a
+        # family added with `font_dir` or `fonts` appears here after the
+        # settings are saved and the form is reloaded.
         font_body:
-          type: text
+          type: select
           label: PLUGIN_PDF.FONT_BODY
           help: PLUGIN_PDF.FONT_BODY_HELP
           default: dejavusans
+          data-options@: '\Grav\Plugin\Pdf\Admin::fontOptions'
 
         font_headings:
-          type: text
+          type: select
           label: PLUGIN_PDF.FONT_HEADINGS
           help: PLUGIN_PDF.FONT_HEADINGS_HELP
           default: dejavusans
+          data-options@: '\Grav\Plugin\Pdf\Admin::fontOptions'
 
         font_dir:
           type: text

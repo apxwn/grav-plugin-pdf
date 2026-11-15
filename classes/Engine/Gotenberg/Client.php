@@ -32,7 +32,8 @@ final class Client
      *
      * This is the number that bounds a fallback: an address that is refused
      * costs nothing, but one that is silently dropped (a firewall, a container
-     * that no longer has an IP) costs exactly this much before mPDF takes over.
+     * that no longer has an IP) costs exactly this much before the built-in
+     * engine takes over.
      */
     public const DEFAULT_CONNECT_TIMEOUT = 2;
 

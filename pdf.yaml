@@ -20,9 +20,9 @@ inherit: true
 # pages opt in individually with `pdf: { enabled: true }`.
 all_pages: false
 
-# Rendering engine. Gotenberg is an optional external service; mPDF remains the
-# default and fallback renderer.
-engine: mpdf
+# Rendering engine. Gotenberg is an optional external service; php-pdf is the
+# bundled default and the fallback renderer.
+engine: php-pdf
 
 gotenberg:
   url: ''
@@ -59,7 +59,8 @@ title: ''
 
 # --- running header and footer ----------------------------------------------
 #
-# HTML, rendered by mPDF on every page (except the cover of a book). Tokens:
+# HTML, rendered by the built-in engine on every page (except the cover of a
+# book). Tokens:
 #
 #   {LOGO}    the logo below as an <img>
 #   {SITE}    the site title from user/config/site.yaml
@@ -158,15 +159,17 @@ font_size: 11
 
 # The typeface of the text, and of the headings — h1–h6 plus the document's own
 # titles (the cover, the contents heading and the lines of the contents). Both
-# are one of the DejaVu faces mPDF carries, so nothing is downloaded and no font
-# file is added:
+# are one of the DejaVu faces the plugin ships, so nothing is downloaded and no
+# font file is added:
 #
 #   dejavusans   dejavusanscondensed   dejavuserif   dejavuserifcondensed
+#   dejavusansmono
 #
-# Headings default to the face of the body. The running header and footer are
-# HTML you write: they stay in the body font, unless you put a heading in them,
-# which then follows `font_headings` like any other heading. A name the plugin
-# does not know falls back to dejavusans.
+# In the Admin these are a dropdown; a family added with `font_dir` or `fonts`
+# appears in it too. Headings default to the face of the body. The running
+# header and footer are HTML you write: they stay in the body font, unless you
+# put a heading in them, which then follows `font_headings` like any other
+# heading. A name the plugin does not know falls back to dejavusans.
 font_body: dejavusans
 font_headings: dejavusans
 
@@ -203,8 +206,7 @@ margin_footer: 8
 #
 # They live in Grav's own cache directory (cache/pdf), which is emptied by
 # `bin/grav clear-cache`. cache_path moves them elsewhere; a stream, an absolute
-# path or a Grav-root-relative path all work, and mPDF's working files follow
-# them into a tmp/ subfolder.
+# path or a Grav-root-relative path all work.
 
 cache: true
 cache_ttl: 86400   # seconds; 0 = never expire

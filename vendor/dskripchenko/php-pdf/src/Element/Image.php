@@ -1,0 +1,131 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Dskripchenko\PhpPdf\Element;
+
+use Dskripchenko\PhpPdf\Image\PdfImage;
+use Dskripchenko\PhpPdf\Style\Alignment;
+
+/**
+ * Raster image (PNG / JPEG). Lives both as a top-level block and as an
+ * inline atom inside paragraphs:
+ *  - At Section.body level → block mode (full-line with alignment).
+ *  - Inside Paragraph.children → inline mode (atom in text flow with
+ *    baseline-aligned bottom; line-height grows to fit image height).
+ *
+ * Sizing rules:
+ *  - Both widthPt and heightPt set: used as-is.
+ *  - Only one set: the other derived from native aspect ratio.
+ *  - Both null: native dimensions at 72 DPI (1 px = 1 pt).
+ *  - `widthPercent`: a share of the width it is laid out in (CSS
+ *    `width: 100%`), the height by the aspect ratio unless `heightPt` is set.
+ *
+ * `$altText` populates the /Alt entry on the surrounding struct element
+ * in Tagged PDF / PDF/UA mode.
+ */
+final readonly class Image implements BlockElement, InlineElement
+{
+    public function __construct(
+        public PdfImage $source,
+        public ?float $widthPt = null,
+        public ?float $heightPt = null,
+        public Alignment $alignment = Alignment::Start,
+        public float $spaceBeforePt = 0,
+        public float $spaceAfterPt = 0,
+        public ?string $altText = null,
+        /**
+         * A floating object: it is drawn, but takes no room in the flow.
+         *
+         * This is how Word places stamps and signatures — anchored to a
+         * paragraph and offset from the anchor point, over the finished text.
+         * While such an object went into the flow as a line of its own, the
+         * document was pushed apart by its height: that cost the insurance
+         * policy an extra page.
+         */
+        public bool $outOfFlow = false,
+        public ?float $widthPercent = null,
+        /** Room kept free on the left and right of a block image (an HTML container's padding). */
+        public float $indentLeftPt = 0,
+        public float $indentRightPt = 0,
+    ) {}
+
+    public static function fromPath(
+        string $path,
+        ?float $widthPt = null,
+        ?float $heightPt = null,
+        Alignment $alignment = Alignment::Start,
+        float $spaceBeforePt = 0,
+        float $spaceAfterPt = 0,
+        ?string $altText = null,
+        bool $outOfFlow = false,
+    ): self {
+        return new self(
+            source: PdfImage::fromPath($path),
+            widthPt: $widthPt,
+            heightPt: $heightPt,
+            alignment: $alignment,
+            spaceBeforePt: $spaceBeforePt,
+            spaceAfterPt: $spaceAfterPt,
+            altText: $altText,
+            outOfFlow: $outOfFlow,
+        );
+    }
+
+    public static function fromBytes(
+        string $bytes,
+        ?float $widthPt = null,
+        ?float $heightPt = null,
+        Alignment $alignment = Alignment::Start,
+        float $spaceBeforePt = 0,
+        float $spaceAfterPt = 0,
+        ?string $altText = null,
+        bool $outOfFlow = false,
+    ): self {
+        return new self(
+            source: PdfImage::fromBytes($bytes),
+            widthPt: $widthPt,
+            heightPt: $heightPt,
+            alignment: $alignment,
+            spaceBeforePt: $spaceBeforePt,
+            spaceAfterPt: $spaceAfterPt,
+            altText: $altText,
+            outOfFlow: $outOfFlow,
+        );
+    }
+
+    /**
+     * Effective rendered dimensions in points, applying defaulting and
+     * aspect ratio preservation.
+     *
+     * @return array{0: float, 1: float} [widthPt, heightPt]
+     */
+    public function effectiveSizePt(?float $availableWidthPt = null): array
+    {
+        if ($this->widthPercent !== null && $availableWidthPt !== null) {
+            $width = $availableWidthPt * $this->widthPercent / 100;
+            $height = $this->heightPt ?? $width * (float) $this->source->heightPx / max((float) $this->source->widthPx, 1.0);
+
+            return [$width, $height];
+        }
+
+        $nativeW = (float) $this->source->widthPx;
+        $nativeH = (float) $this->source->heightPx;
+
+        if ($this->widthPt !== null && $this->heightPt !== null) {
+            return [$this->widthPt, $this->heightPt];
+        }
+        if ($this->widthPt !== null) {
+            $ratio = $nativeH / max($nativeW, 1);
+
+            return [$this->widthPt, $this->widthPt * $ratio];
+        }
+        if ($this->heightPt !== null) {
+            $ratio = $nativeW / max($nativeH, 1);
+
+            return [$this->heightPt * $ratio, $this->heightPt];
+        }
+
+        return [$nativeW, $nativeH];
+    }
+}

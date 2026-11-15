@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.4.0 — 2026-11-15
+
+### Changed
+
+* **The bundled renderer is now `dskripchenko/php-pdf` instead of mPDF.** mPDF is
+  GPL-2.0-only, which forced this plugin under the same licence and kept it out of GPM. The
+  replacement is MIT, has no runtime dependencies of its own, and is bundled in `vendor/` as
+  before. The plugin is now licensed under the **MIT** licence.
+* **PHP 8.2 or later** is required, with `ext-dom`, `ext-mbstring` and `ext-zlib`.
+* **The engine is called `php-pdf`.** `engine: php-pdf` is the default; a saved
+  `engine: mpdf` is read as `php-pdf`, so an existing configuration keeps working. Cached
+  documents are stored under a `.php-pdf` suffix, so nothing stale is served.
+* **The fonts moved into the plugin.** The DejaVu faces now live in `fonts/` rather than in
+  the renderer's own folder, and DejaVu Sans Mono joined the set.
+* **Body font and Heading font are dropdowns in the Admin.** The list holds the bundled
+  faces plus any family added with `font_dir` or `fonts`, so a family name never has to be
+  typed by hand. The per-page PDF tab uses the same list.
+* The table of contents is links-only, as it already was for Gotenberg: page numbers are not
+  known before layout.
+
+### Fixed
+
+* **Footnote numbers were wrong in a book.** A reference could print the number of a
+  footnote from another article — `12` where the note itself said `1` — because the
+  renderer's glyph cache evicted entries with `array_shift()`, which reindexes numeric keys
+  and made `1` resolve to another number's glyphs. The cache now evicts by key.
+* **Anchor markup was printed as text.** The `page-toc` plugin appends an empty
+  `<a class="toc-anchor" href="#…">` to every heading; the renderer printed the raw `#…`
+  target as visible link text. Empty links are now dropped, so headings print clean and
+  carry no stray link.
+
 ## 1.3.1 — 2026-11-15
 
 ### Fixed

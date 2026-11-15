@@ -15,23 +15,42 @@ use Grav\Plugin\PdfPlugin;
  *
  * The Generator knows what goes into a document — the settings, the entries,
  * the fonts — and nothing about how it is drawn: that is the engine's job. Two
- * are available, the mPDF bundled with the plugin and an external Gotenberg
- * service (see Engine\Router).
+ * are available, the php-pdf engine bundled with the plugin and an external
+ * Gotenberg service (see Engine\Router).
  *
  * Nothing here knows anything about a theme or a particular site: the fonts are
- * mPDF's own (or the ones a site points at), the logo is whatever `logo` names,
- * and every frontmatter key the document reads is a setting with a generic
- * default.
+ * the ones the plugin ships (or the ones a site points at), the logo is
+ * whatever `logo` names, and every frontmatter key the document reads is a
+ * setting with a generic default.
  */
 class Generator
 {
     /**
-     * The typefaces mPDF ships, each with its bold, italic and bold-italic
-     * companion. Latin, Greek and Cyrillic are covered by all four, and none of
-     * them has to be downloaded or installed. A site can add families of its own
-     * with `fonts` and `font_dir`.
+     * The typefaces the plugin ships, each with its bold, italic and
+     * bold-italic companion. Latin, Greek and Cyrillic are covered by all of
+     * them, and none of them has to be downloaded or installed. A site can add
+     * families of its own with `fonts` and `font_dir`.
      */
-    private const FONTS = ['dejavusans', 'dejavusanscondensed', 'dejavuserif', 'dejavuserifcondensed'];
+    private const FONTS = [
+        'dejavusans',
+        'dejavusanscondensed',
+        'dejavuserif',
+        'dejavuserifcondensed',
+        'dejavusansmono',
+    ];
+
+    /**
+     * How the built-in faces are named in the Admin dropdowns.
+     *
+     * A font name is a proper noun, so these are not translated.
+     */
+    private const FONT_LABELS = [
+        'dejavusans' => 'DejaVu Sans',
+        'dejavusanscondensed' => 'DejaVu Sans Condensed',
+        'dejavuserif' => 'DejaVu Serif',
+        'dejavuserifcondensed' => 'DejaVu Serif Condensed',
+        'dejavusansmono' => 'DejaVu Sans Mono',
+    ];
 
     /** The parts a dateline can be built from, in the default order. */
     private const META_DEFAULTS = ['date', 'category', 'author'];
@@ -123,7 +142,7 @@ class Generator
                 [$file, $engine] = $this->produce($router, $this->document($page, $items, $mode), $store, $key, $engine);
             } catch (Unavailable $e) {
                 $this->plain(503, sprintf(
-                    "Gotenberg at %s could not build this document, and falling back to mPDF is turned off.\n"
+                    "Gotenberg at %s could not build this document, and falling back to the built-in engine is turned off.\n"
                     . "%s\n",
                     $router->url(),
                     $e->getMessage()
@@ -142,9 +161,9 @@ class Generator
      *
      * The temporary file is what makes a half-written document impossible to
      * serve, and building before the name is known is what keeps a fallback out
-     * of the Gotenberg cache entry: an mPDF document is stored under `…mpdf`,
-     * so the next request after Gotenberg recovers builds a Gotenberg one
-     * instead of reusing the substitute for a whole `cache_ttl`.
+     * of the Gotenberg cache entry: a built-in document is stored under
+     * `…php-pdf`, so the next request after Gotenberg recovers builds a
+     * Gotenberg one instead of reusing the substitute for a whole `cache_ttl`.
      *
      * @return array{0: string, 1: string} the file to serve, and the engine that produced it
      */
@@ -249,8 +268,8 @@ class Generator
     }
 
     /**
-     * The style words a font file name may end in, and the mPDF style key each
-     * one maps to.
+     * The style words a font file name may end in, and the style key each one
+     * maps to.
      */
     private const FONT_STYLES = [
         'regular' => 'R',
@@ -271,7 +290,7 @@ class Generator
      * Only needed when a site's file names do not follow the
      * `<Family>-<Style>.ttf` convention, or when a font lives outside
      * `font_dir`. Values are file names relative to `font_dir`, or paths — see
-     * fontFiles(), which resolves those before mPDF sees them.
+     * fontPaths(), which resolves those before the renderer sees them.
      *
      * @return array<string, array<string, string>>
      */
@@ -372,7 +391,7 @@ class Generator
     }
 
     /**
-     * The `.ttf` files behind one of the faces mPDF ships.
+     * The `.ttf` files behind one of the faces the plugin ships.
      *
      * The bundled renderer knows these by family name; an external one needs
      * the files themselves to embed, which is the only way it can set the same
@@ -388,6 +407,7 @@ class Generator
             'dejavusanscondensed' => 'DejaVuSansCondensed',
             'dejavuserif' => 'DejaVuSerif',
             'dejavuserifcondensed' => 'DejaVuSerifCondensed',
+            'dejavusansmono' => 'DejaVuSansMono',
         ];
 
         $base = $files[strtolower(trim($family))] ?? null;
@@ -396,12 +416,12 @@ class Generator
             return [];
         }
 
-        $dir = dirname(__DIR__) . '/vendor/mpdf/mpdf/ttfonts/';
+        $dir = dirname(__DIR__) . '/fonts/';
         $styles = [
             'R' => $base . '.ttf',
             'B' => $base . '-Bold.ttf',
             // DejaVu calls the slanted faces "Oblique" on the Sans families and
-            // "Italic" on the Serif ones; mPDF's own fontdata makes the same
+            // "Italic" on the Serif ones; the bundled font set makes the same
             // distinction.
             'I' => [ $base . '-Italic.ttf', $base . '-Oblique.ttf' ],
             'BI' => [ $base . '-BoldItalic.ttf', $base . '-BoldOblique.ttf' ],
@@ -422,12 +442,85 @@ class Generator
     }
 
     /**
+     * Every family a site can choose, as value => label, for the Admin
+     * dropdowns.
+     *
+     * The built-in faces come first, then whatever `font_dir` holds and
+     * whatever `fonts` names — alphabetically, so the list does not shuffle
+     * about. A family found in a directory is labelled by the name its file
+     * names imply; one named in `fonts` keeps the spelling the administrator
+     * wrote, because that is what they will recognise.
+     *
+     * A value already saved in `font_body` or `font_headings` is always in the
+     * list, even when the family is gone from disk: a dropdown that showed
+     * nothing at all would hide both the problem and the thing to correct.
+     *
+     * @return array<string, string>
+     */
+    public function fontChoices(): array
+    {
+        $custom = [];
+        $settings = $this->fontSettings();
+
+        foreach (array_keys($this->scanFonts($settings)) as $family) {
+            $custom[$family] = self::fontLabel($family);
+        }
+
+        foreach (array_keys((array) $settings['fonts']) as $family) {
+            $normalized = strtolower((string) preg_replace('/[^A-Za-z0-9]+/', '', (string) $family));
+
+            if ($normalized !== '') {
+                $custom[$normalized] = trim((string) $family) !== ''
+                    ? trim((string) $family)
+                    : self::fontLabel($normalized);
+            }
+        }
+
+        foreach (['font_body', 'font_headings'] as $key) {
+            $value = strtolower(trim((string) $this->config->global($key, '')));
+
+            if ($value !== '' && !isset($custom[$value])) {
+                $custom[$value] = self::fontLabel($value);
+            }
+        }
+
+        ksort($custom);
+
+        return self::FONT_LABELS + $custom;
+    }
+
+    /**
+     * The `font_dir` and `fonts` settings, in the shape the font helpers read.
+     *
+     * @return array{font_dir: array<int, string>, fonts: array<string, mixed>}
+     */
+    private function fontSettings(): array
+    {
+        $dirs = $this->config->global('font_dir', []);
+        $fonts = $this->config->global('fonts', []);
+
+        return [
+            'font_dir' => is_string($dirs) ? [$dirs] : (array) $dirs,
+            'fonts' => is_array($fonts) ? $fonts : [],
+        ];
+    }
+
+    /**
+     * A readable label for a family name that has none of its own.
+     */
+    private static function fontLabel(string $family): string
+    {
+        return ucfirst($family);
+    }
+
+    /**
      * One of the known faces — or a family found in `font_dir` — else the
      * default.
      *
-     * mPDF substitutes a family it does not know, silently, following the first
-     * entry of its own sans/serif list. Rejecting an unknown name here is what
-     * makes a typo visible instead of printing the document in some other face.
+     * The renderer substitutes a family it does not know, silently, following
+     * the first entry of its own sans/serif list. Rejecting an unknown name
+     * here is what makes a typo visible instead of printing the document in
+     * some other face.
      */
     private function font($value, array $custom = []): string
     {
@@ -483,16 +576,18 @@ class Generator
     /**
      * The family and style a font file name implies.
      *
-     * mPDF needs a family name and a file name per style; the file names are the
-     * only thing a site has to supply, so the convention is the mapping:
+     * The renderer needs a family name and a file name per style; the file
+     * names are the only thing a site has to supply, so the convention is the
+     * mapping:
      *
      *     MyFont-Regular.ttf   MyFont-Bold.ttf
      *     MyFont-Italic.ttf    MyFont-BoldItalic.ttf
      *
      * The part before the style word is the family, lower-cased and stripped of
-     * anything mPDF would choke on; the word after it is the style. A file with
-     * no recognised style word is the regular face of a family named after the
-     * whole file, which is reported with a null style so the caller can decide.
+     * anything that is not a letter or a digit; the word after it is the style.
+     * A file with no recognised style word is the regular face of a family
+     * named after the whole file, which is reported with a null style so the
+     * caller can decide.
      *
      * @return array{0: string, 1: string|null} family, style
      */
@@ -526,10 +621,10 @@ class Generator
     /**
      * Read the font directories and describe what is in them.
      *
-     * Anything that is not a `.ttf` is ignored, since mPDF cannot use it. The
-     * first file to name a given family and style wins, so directories are
-     * searched in the order they are configured and a site can shadow a family
-     * by putting its own copy in a directory listed earlier.
+     * Anything that is not a `.ttf` is ignored, since the renderer cannot use
+     * it. The first file to name a given family and style wins, so directories
+     * are searched in the order they are configured and a site can shadow a
+     * family by putting its own copy in a directory listed earlier.
      *
      * @return array<string, array<string, string>> family => style => filename
      */
@@ -941,9 +1036,8 @@ class Generator
             $entries[] = [
                 'title' => (string) $source->title(),
                 'meta' => $this->meta($source, $settings),
-                // An id a table of contents can link to. mPDF does not need it
-                // — it numbers its own contents — but Chromium cannot, so the
-                // external engine builds its contents from these.
+                // An id a table of contents can link to. The built-in engine
+                // builds its contents from these, and so does the external one.
                 'anchor' => 'pdf-entry-' . count($entries),
                 'images' => $images ? Html::pageImages($source, $this->config, (int) $settings['images_max']) : [],
                 'content' => Html::body(

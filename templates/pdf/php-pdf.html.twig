@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="{{ language|default('en') }}">
+<head>
+<meta charset="utf-8">
+<title>{{ document.title }}</title>
+<style>
+{{ include('@pdf/php-pdf-style.html.twig') }}
+</style>
+</head>
+<body>
+{% if settings.cover %}
+    {% include '@pdf/cover.html.twig' %}
+    <div class="pdf-page-break"></div>
+{% endif %}
+
+{% if settings.toc and toc is not empty %}
+    {% include '@pdf/php-pdf-toc.html.twig' %}
+    <div class="pdf-page-break"></div>
+{% endif %}
+
+{% include '@pdf/book.html.twig' with { entries: entries, engine: 'php-pdf' } only %}
+</body>
+</html>

@@ -1,0 +1,105 @@
+{# Print stylesheet for the built-in php-pdf renderer.
+
+   Included inside <style> in php-pdf.html.twig and when parsing the
+   running header and footer HTML. #}
+    body {
+        font-family: {{ settings.font_body }};
+        font-size: {{ settings.font_size }}pt;
+        line-height: 1.45;
+        color: #1a1a1a;
+        margin: 0;
+    }
+
+    h1, h2, h3, h4, h5, h6,
+    .pdf-h1, .pdf-h2, .pdf-h3, .pdf-h4, .pdf-h5, .pdf-h6 {
+        font-family: {{ settings.font_headings }};
+        font-weight: bold;
+    }
+
+    h1 { font-size: 19pt; margin: 0 0 2mm 0; line-height: 1.25; }
+    h2, .pdf-h2 { font-size: 15pt; margin: 6mm 0 2mm 0; line-height: 1.3; }
+    h3, .pdf-h3 { font-size: 13pt; margin: 5mm 0 2mm 0; line-height: 1.3; }
+    h4, .pdf-h4 { font-size: 11.5pt; margin: 4mm 0 2mm 0; line-height: 1.3; }
+    h5, .pdf-h5 { font-size: 11pt; margin: 4mm 0 2mm 0; }
+    h6, .pdf-h6 { font-size: 11pt; margin: 4mm 0 2mm 0; font-style: italic; }
+
+    p { margin: 0 0 2.6mm 0; }
+    ul, ol { margin: 0 0 2.6mm 0; padding-left: 6mm; }
+    li { margin-bottom: 1.2mm; }
+    strong, b { font-weight: bold; }
+    em, i { font-style: italic; }
+    a { color: #1a1a1a; text-decoration: none; }
+    img { max-width: 100%; }
+    hr { border: none; border-top: 0.2mm solid #cccccc; margin: 4mm 0; }
+
+    blockquote {
+        margin: 0 0 3mm 5mm;
+        padding-left: 3mm;
+        border-left: 0.6mm solid #cccccc;
+        color: #444444;
+    }
+
+    table { width: 100%; border-collapse: collapse; margin-bottom: 3mm; }
+    td, th { border: 0.2mm solid #bbbbbb; padding: 1.4mm; text-align: left; }
+    th { background-color: #f2f2f2; font-weight: bold; }
+
+    /* --- page breaks ---------------------------------------------------- */
+    .pdf-page-break { page-break-after: always; break-after: page; }
+
+    /* --- cover ---------------------------------------------------------- */
+    .pdf-cover { text-align: center; }
+    .pdf-cover-logo { height: 22mm; display: block; margin: 0 auto 12mm auto; }
+    .pdf-cover-site {
+        font-size: 11pt;
+        text-transform: uppercase;
+        color: #666666;
+        margin-bottom: 48mm;
+    }
+    .pdf-cover-title {
+        font-family: {{ settings.font_headings }};
+        font-size: 30pt;
+        font-weight: bold;
+        line-height: 1.2;
+        margin-bottom: 8mm;
+    }
+    .pdf-cover-rule {
+        border-top: 0.3mm solid #999999;
+        width: 44mm;
+        margin: 0 auto 8mm auto;
+    }
+    .pdf-cover-meta { font-size: 11pt; color: #666666; }
+
+    /* --- contents ------------------------------------------------------- */
+    .pdf-toc-title {
+        font-family: {{ settings.font_headings }};
+        font-size: 18pt;
+        font-weight: bold;
+        margin-bottom: 7mm;
+    }
+    .pdf-toc-list { list-style-type: none; margin: 0; padding: 0; }
+    .pdf-toc-list li { margin-bottom: 1.6mm; }
+    .pdf-toc-level-0 { font-size: 12pt; font-weight: bold; }
+    .pdf-toc-level-1 { margin-left: 7mm; font-size: 11pt; }
+
+    /* --- one article ---------------------------------------------------- */
+    .pdf-meta {
+        font-size: 9pt;
+        color: #777777;
+        margin-bottom: 4mm;
+        padding-bottom: 2mm;
+        border-bottom: 0.2mm solid #dddddd;
+    }
+    .pdf-images { text-align: center; margin: 0 0 4mm 0; }
+    .pdf-images img { margin: 0 1mm 2mm 1mm; }
+
+    /* --- running header and footer -------------------------------------- */
+    .pdf-header { font-size: 8pt; color: #777777; text-align: left; }
+    .pdf-header hr { border: none; border-top: 0.2mm solid #cccccc; margin: 2mm 0 0 0; }
+    .pdf-logo { height: 8mm; vertical-align: middle; }
+    .pdf-footer {
+        font-size: 9pt;
+        color: #777777;
+        text-align: center;
+        border-top: 0.2mm solid #dddddd;
+        padding-top: 1.5mm;
+    }

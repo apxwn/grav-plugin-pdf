@@ -10,8 +10,8 @@ use Grav\Plugin\Pdf\Paths;
  * Without this, a Gotenberg container that is down would cost every PDF
  * request a connect attempt — a couple of seconds each with a blackholed host
  * — and the site would look slow rather than degraded. After a failure the
- * engine is skipped for `retry_after` seconds and mPDF builds the document
- * directly.
+ * engine is skipped for `retry_after` seconds and the built-in engine builds
+ * the document directly.
  *
  * The state is one small JSON file next to the document cache, so it survives
  * between requests without a database, and `bin/grav clear-cache` forgets it

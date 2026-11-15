@@ -1,0 +1,31 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Dskripchenko\PhpPdf\Element;
+
+/**
+ * Single list entry. `$children` holds the item body (usually paragraphs,
+ * sometimes images or nested tables). `$nestedList`, when present, renders
+ * after `$children` at the next indent level. ListItem is not a
+ * BlockElement — it only lives inside ListNode.
+ */
+final readonly class ListItem
+{
+    /**
+     * @param  list<BlockElement>  $children
+     */
+    public function __construct(
+        public array $children,
+        public ?ListNode $nestedList = null,
+        /**
+         * The label as written — `3.1. ` from a `::marker` rule; '' for no
+         * label; null for the list's own format.
+         */
+        public ?string $marker = null,
+        /** The item's number when it does not follow the previous one (`<li value>`). */
+        public ?int $value = null,
+        /** The item's own extra indent (its CSS margin-left), on top of the list's. */
+        public float $indentPt = 0.0,
+    ) {}
+}
