@@ -4,6 +4,8 @@
 
 ### Fixed
 
+* PDF images, logos and custom fonts are now resolved through canonical paths confined to the
+  Grav installation. Traversal paths and symlinks pointing outside it are rejected.
 * Book collections now omit children whose effective `pdf.enabled` setting is `false`, matching
   the opt-out behavior for standalone PDFs.
 * PDF error responses no longer disclose collection limits, the Gotenberg address, or renderer

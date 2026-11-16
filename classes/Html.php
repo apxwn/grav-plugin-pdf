@@ -248,7 +248,13 @@ class Html
         $inline = self::inlineImages($page, $config);
 
         $add = static function ($file) use (&$files, $maxWidth, $quality, $inline): bool {
-            if (!is_string($file) || $file === '' || !is_file($file)) {
+            if (!is_string($file) || $file === '') {
+                return false;
+            }
+
+            $file = Paths::withinGrav($file);
+
+            if ($file === null) {
                 return false;
             }
 
@@ -401,17 +407,20 @@ class Html
             $src = substr($src, strlen($base));
         }
 
+        // Resolve both root-relative and page-relative paths, then canonicalize
+        // and confine them. This rejects traversal as well as symlinks escaping
+        // the Grav installation.
+        $file = null;
+
         if (str_starts_with($src, '/')) {
             $file = GRAV_ROOT . $src;
-
-            return is_file($file) ? $file : null;
+        } elseif ($page instanceof PageInterface) {
+            // Page-relative, as an editor would have typed it.
+            $file = $page->path() . '/' . $src;
         }
 
-        // Page-relative, as an editor would have typed it.
-        if ($page instanceof PageInterface) {
-            $file = $page->path() . '/' . $src;
-
-            return is_file($file) ? $file : null;
+        if ($file !== null) {
+            return Paths::withinGrav($file);
         }
 
         return null;

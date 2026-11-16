@@ -76,6 +76,34 @@ final class Paths
     }
 
     /**
+     * Resolve an existing file or directory, but only when it is inside Grav.
+     *
+     * realpath() both removes traversal components and follows symlinks, so a
+     * path that looks local but points outside the installation is rejected.
+     */
+    public static function withinGrav(string $path, bool $directory = false): ?string
+    {
+        $root = realpath(GRAV_ROOT);
+        $resolved = realpath($path);
+
+        if ($root === false || $resolved === false) {
+            return null;
+        }
+
+        $prefix = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+
+        if ($resolved !== $root && !str_starts_with($resolved, $prefix)) {
+            return null;
+        }
+
+        if ($directory ? !is_dir($resolved) : !is_file($resolved)) {
+            return null;
+        }
+
+        return $resolved;
+    }
+
+    /**
      * Create a directory, and report whether it is there afterwards.
      */
     public static function ensure(string $dir): bool

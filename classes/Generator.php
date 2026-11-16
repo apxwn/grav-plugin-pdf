@@ -365,18 +365,22 @@ class Generator
                     : Paths::resolve($this->grav, $file);
 
                 // A bare name is a file inside one of the `font_dir` folders.
-                if ($path === null || !is_file($path)) {
+                $path = $path !== null ? Paths::withinGrav($path) : null;
+
+                if ($path === null) {
                     $path = null;
 
                     foreach ($dirs as $dir) {
-                        if (is_file($dir . '/' . $file)) {
-                            $path = $dir . '/' . $file;
+                        $resolved = Paths::withinGrav($dir . '/' . $file);
+
+                        if ($resolved !== null) {
+                            $path = $resolved;
                             break;
                         }
                     }
                 }
 
-                if ($path === null || !is_file($path)) {
+                if ($path === null) {
                     throw new \RuntimeException(sprintf(
                         'PDF: the font file "%s" for "%s" was not found. Put it in a "font_dir" folder, '
                         . 'or correct the path in the "fonts" setting.',
@@ -567,8 +571,10 @@ class Generator
 
             $dir = Paths::resolve($this->grav, $configured);
 
-            if ($dir !== null && is_dir($dir)) {
-                $dirs[] = rtrim($dir, '/');
+            $dir = $dir !== null ? Paths::withinGrav($dir, true) : null;
+
+            if ($dir !== null) {
+                $dirs[] = $dir;
             }
         }
 
@@ -870,8 +876,12 @@ class Generator
         foreach ($locatorPaths as $locatorPath) {
             $file = $this->grav['locator']->findResource($locatorPath, true, true);
 
-            if (is_string($file) && is_file($file)) {
-                return $file;
+            if (is_string($file)) {
+                $file = Paths::withinGrav($file);
+
+                if ($file !== null) {
+                    return $file;
+                }
             }
         }
 

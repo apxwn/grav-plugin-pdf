@@ -2,6 +2,8 @@
 
 namespace Grav\Plugin\Pdf\Engine\Gotenberg;
 
+use Grav\Plugin\Pdf\Paths;
+
 /**
  * The files a Gotenberg request carries.
  *
@@ -35,7 +37,9 @@ final class Assets
     {
         $path = trim($path);
 
-        if ($path === '' || !is_file($path) || !is_readable($path)) {
+        $path = $path !== '' ? Paths::withinGrav($path) : null;
+
+        if ($path === null || !is_readable($path)) {
             return null;
         }
 
