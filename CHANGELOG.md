@@ -6,6 +6,8 @@
 
 * Book collections now omit children whose effective `pdf.enabled` setting is `false`, matching
   the opt-out behavior for standalone PDFs.
+* PDF error responses no longer disclose collection limits, the Gotenberg address, or renderer
+  errors to visitors; the operational details are logged server-side instead.
 
 ## 1.4.0 — 2026-11-15
 

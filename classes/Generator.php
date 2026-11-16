@@ -117,12 +117,13 @@ class Generator
             $max = (int) $this->config->forPage($page, 'max_items', 500);
 
             if ($max > 0 && count($items) > $max) {
-                $this->plain(413, sprintf(
-                    "This collection holds %d pages, more than the configured maximum of %d.\n"
-                    . "Raise plugins.pdf.max_items (or set it to 0 for no limit) to export it.\n",
+                $this->grav['log']->warning(sprintf(
+                    'PDF: collection export rejected because it contains %d items; the configured maximum is %d.',
                     count($items),
                     $max
                 ));
+
+                $this->plain(413, "This collection is too large to export as a PDF.\n");
 
                 return;
             }
@@ -141,12 +142,13 @@ class Generator
             try {
                 [$file, $engine] = $this->produce($router, $this->document($page, $items, $mode), $store, $key, $engine);
             } catch (Unavailable $e) {
-                $this->plain(503, sprintf(
-                    "Gotenberg at %s could not build this document, and falling back to the built-in engine is turned off.\n"
-                    . "%s\n",
-                    $router->url(),
-                    $e->getMessage()
+                $this->grav['log']->error(sprintf(
+                    'PDF: Gotenberg conversion failed with fallback disabled (service %s): %s',
+                    self::safeServiceAddress($router->url()),
+                    self::safeLogMessage($e->getMessage())
                 ));
+
+                $this->plain(503, "The PDF could not be generated. Please try again later.\n");
             }
 
             $store->prune($file);
@@ -1109,6 +1111,44 @@ class Generator
         $slug = trim($slug, '-_');
 
         return ($slug !== '' ? $slug : 'document') . '.pdf';
+    }
+
+    /**
+     * The configured service's network address, without credentials or URL
+     * components that are not needed to identify the host in a server log.
+     */
+    private static function safeServiceAddress(string $url): string
+    {
+        $parts = parse_url($url);
+        $scheme = is_array($parts) ? strtolower((string) ($parts['scheme'] ?? '')) : '';
+        $host = is_array($parts) ? (string) ($parts['host'] ?? '') : '';
+
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '') {
+            return 'configured service';
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            $host = '[' . $host . ']';
+        } elseif (!filter_var($host, FILTER_VALIDATE_IP)
+            && preg_match('/\A(?=.{1,253}\z)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*\.?\z/i', $host) !== 1
+        ) {
+            return 'configured service';
+        }
+
+        $port = isset($parts['port']) ? ':' . (int) $parts['port'] : '';
+
+        return $scheme . '://' . $host . $port;
+    }
+
+    /** Keep untrusted service text on one bounded line in the server log. */
+    private static function safeLogMessage(string $message): string
+    {
+        $message = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $message) ?? '';
+        $message = trim((string) preg_replace('/\s+/', ' ', $message));
+
+        return mb_strlen($message, 'UTF-8') > 500
+            ? mb_substr($message, 0, 500, 'UTF-8') . '…'
+            : $message;
     }
 
     private function plain(int $status, string $message): void
