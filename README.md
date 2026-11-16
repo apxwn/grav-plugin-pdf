@@ -132,9 +132,9 @@ Set `inherit: false` in the plugin configuration if you want every page to be ex
 
 ### Every page at once
 
-`all_pages: true` in the plugin configuration exports every page regardless of frontmatter.
-Useful for a quick look at how a section turns out; `false` (the default) is what you want
-in production.
+`all_pages: true` in the plugin configuration exports pages by default, unless a page (or,
+with inheritance on, one of its ancestors) explicitly sets `pdf.enabled: false`. Useful for a
+quick look at how a section turns out; `false` (the default) is what you want in production.
 
 ---
 

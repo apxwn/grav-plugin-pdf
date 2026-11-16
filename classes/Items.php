@@ -30,7 +30,7 @@ class Items
         if (is_array($params) && !empty($params['items'])) {
             $items = [];
             foreach ($page->collection($params, false) as $item) {
-                if ($item instanceof PageInterface && self::keep($item)) {
+                if ($item instanceof PageInterface && self::keep($item, $config)) {
                     $items[] = $item;
                 }
             }
@@ -44,7 +44,7 @@ class Items
 
         $items = [];
         foreach ($source as $item) {
-            if ($item instanceof PageInterface && self::keep($item)) {
+            if ($item instanceof PageInterface && self::keep($item, $config)) {
                 $items[] = $item;
             }
         }
@@ -104,11 +104,11 @@ class Items
     }
 
     /**
-     * Publishable, routable, non-modular pages only.
+     * Opted-in, publishable, routable, non-modular pages only.
      */
-    private static function keep(PageInterface $page): bool
+    private static function keep(PageInterface $page, Config $config): bool
     {
-        if (!$page->published() || !$page->routable() || $page->isModule()) {
+        if (!$config->optIn($page) || !$page->published() || !$page->routable() || $page->isModule()) {
             return false;
         }
 

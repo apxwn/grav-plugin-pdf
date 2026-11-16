@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+* Book collections now omit children whose effective `pdf.enabled` setting is `false`, matching
+  the opt-out behavior for standalone PDFs.
+
 ## 1.4.0 — 2026-11-15
 
 ### Changed
