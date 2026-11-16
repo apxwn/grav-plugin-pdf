@@ -44,6 +44,7 @@ pdfimages -list /tmp/x.pdf | head
 | `classes/Paths.php` | where documents and the plugin's working files live |
 | `classes/State.php` | the `pdf` Twig variable |
 | `classes/Engine/` | the renderers: `PhpPdf` (bundled), `Gotenberg` (external), and the `Router` that picks one |
+| `classes/Engine/Gotenberg/HtmlSanitizer.php` | Gotenberg-only allowlist for page content and running furniture before Chromium conversion |
 | `fonts/` | the DejaVu faces the plugin embeds |
 | `templates/pdf/` | print stylesheets, cover, contents, article, book layout, example button |
 
@@ -71,15 +72,18 @@ There is no test suite. Before a release, verify at minimum:
 
 1. a single-article PDF and a book PDF both return `200` with the expected page counts;
 2. `pdftotext` output is identical to the previous release's for the same content;
-3. a page that has not opted in still 404s;
-4. `php -l` passes on every PHP file:
+3. with Gotenberg selected, inline styles, event attributes, remote image URLs, SVG and
+   embedded content do not reach Chromium, while fragment/web links and local raster images
+   still work;
+4. a page that has not opted in still 404s;
+5. `php -l` passes on every PHP file:
 
    ```bash
    find . -name '*.php' -not -path './vendor/*' -exec php -l {} +
    ```
 
-5. the Admin screens load — the plugin configuration and a page's **PDF** tab;
-6. the new files land in `cache/pdf/`, and `bin/grav clear-cache` removes them.
+6. the Admin screens load — the plugin configuration and a page's **PDF** tab;
+7. the new files land in `cache/pdf/`, and `bin/grav clear-cache` removes them.
 
 ## Release
 

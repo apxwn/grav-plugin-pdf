@@ -43,6 +43,10 @@ final class Assets
             return null;
         }
 
+        if ($kind === 'img' && !self::isRasterImage($path)) {
+            return null;
+        }
+
         $key = (string) realpath($path);
 
         if (isset($this->names[$key])) {
@@ -62,16 +66,16 @@ final class Assets
     /**
      * Point every image in $html at an uploaded copy.
      *
-     * Anything that is not a local file is dropped rather than left behind: a
-     * remote `src` would have Chromium fetch it from the network, which is both
-     * a privacy leak and a dependency on whatever the site looked like today,
-     * and a `data:` URI is taken as the author's word and left alone.
+     * Anything that is not a local file is dropped rather than left behind:
+     * Chromium should only receive images that the plugin resolved to local
+     * files and uploaded with the job. The separate furniture path may retain
+     * the plugin-generated base64 logo.
      */
-    public function images(string $html): string
+    public function images(string $html, bool $allowTrustedDataImages = false): string
     {
         return (string) preg_replace_callback(
             '#<img\b[^>]*>#i',
-            function (array $match): string {
+            function (array $match) use ($allowTrustedDataImages): string {
                 // `(?<![-\w])` keeps `data-src` out: it also ends in "src=".
                 if (!preg_match('#(?<![-\w])src\s*=\s*("([^"]*)"|\'([^\']*)\')#i', $match[0], $src, PREG_OFFSET_CAPTURE)) {
                     return $match[0];
@@ -80,11 +84,11 @@ final class Assets
                 $raw = $src[2][0] !== '' ? $src[2][0] : $src[3][0];
                 $value = html_entity_decode((string) $raw, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-                if (str_starts_with($value, 'data:')) {
+                $name = $this->add($value, 'img');
+
+                if ($allowTrustedDataImages && HtmlSanitizer::isSafeImageDataUri($value)) {
                     return $match[0];
                 }
-
-                $name = $this->add($value, 'img');
 
                 if ($name === null) {
                     return '';
@@ -113,5 +117,27 @@ final class Assets
     public function count(): int
     {
         return count($this->files);
+    }
+
+    /** Only upload passive raster images; SVG can carry its own resource URLs. */
+    private static function isRasterImage(string $path): bool
+    {
+        $image = @getimagesize($path);
+
+        if (!is_array($image) || !isset($image[2])) {
+            return false;
+        }
+
+        $allowed = [IMAGETYPE_GIF, IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_BMP];
+
+        if (defined('IMAGETYPE_WEBP')) {
+            $allowed[] = IMAGETYPE_WEBP;
+        }
+
+        if (defined('IMAGETYPE_AVIF')) {
+            $allowed[] = IMAGETYPE_AVIF;
+        }
+
+        return in_array((int) $image[2], $allowed, true);
     }
 }

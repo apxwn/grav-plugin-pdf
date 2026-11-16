@@ -6,6 +6,7 @@ use Grav\Common\Grav;
 use Grav\Plugin\Pdf\Config;
 use Grav\Plugin\Pdf\Engine\Gotenberg\Assets;
 use Grav\Plugin\Pdf\Engine\Gotenberg\Client;
+use Grav\Plugin\Pdf\Engine\Gotenberg\HtmlSanitizer;
 use Grav\Plugin\Pdf\Furniture;
 use Grav\Plugin\Pdf\Generator;
 use Grav\Plugin\PdfPlugin;
@@ -96,6 +97,17 @@ final class Gotenberg implements Engine
         $header = $this->furniture($document, true);
         $footer = $this->furniture($document, false);
 
+        // Furniture is a separate Chromium document. Resolve its custom local
+        // images through the same upload set; only its plugin-generated logo
+        // may remain as a data URI.
+        if ($header !== '') {
+            $header = $assets->images($header, true);
+        }
+
+        if ($footer !== '') {
+            $footer = $assets->images($footer, true);
+        }
+
         $files = [];
         $written = [];
 
@@ -139,7 +151,10 @@ final class Gotenberg implements Engine
         foreach (array_values($entries) as $index => $entry) {
             $anchor = (string) ($entry['anchor'] ?? 'pdf-entry-' . $index);
 
-            [$content, $headings] = $this->headings((string) ($entry['content'] ?? ''), $depth);
+            [$content, $headings] = $this->headings(
+                HtmlSanitizer::sanitize((string) ($entry['content'] ?? '')),
+                $depth
+            );
 
             $entry['content'] = $content;
             $entry['anchor'] = $anchor;
@@ -279,7 +294,7 @@ final class Gotenberg implements Engine
         ];
 
         $html = Furniture::expand(
-            (string) ($isHeader ? $settings['header'] : $settings['footer']),
+            HtmlSanitizer::sanitize((string) ($isHeader ? $settings['header'] : $settings['footer'])),
             $settings,
             $document->title,
             $document->site,
@@ -291,6 +306,11 @@ final class Gotenberg implements Engine
         if ($html === '') {
             return '';
         }
+
+        // Validate the expanded token output too. The only data image allowed
+        // here is the plugin-generated logo, which was not present in the
+        // administrator-supplied HTML sanitized above.
+        $html = HtmlSanitizer::sanitize($html, true);
 
         return $document->render('@pdf/gotenberg-furniture.html.twig', [
             'body' => $html,

@@ -258,8 +258,33 @@ Gotenberg uses Chromium rather than php-pdf. A book's contents are links-only be
 numbers are unknown before layout; the cover and articles are kept in one HTML document so
 anchors, footnotes and named destinations survive. Its PDF outline follows `toc_depth`.
 Fonts used by the document are uploaded with each conversion. Running headers/footers are
-separate Chromium documents and may use the host's fallback font; vector logos are cover-only
-because repeating them in every page makes large books disproportionately large.
+separate Chromium documents and may use the host's fallback font. Use raster images for
+Gotenberg documents: SVG images and logos are omitted because SVG can carry its own resource
+references, and a repeated vector logo can make large books disproportionately large.
+
+#### Gotenberg security and remote services
+
+Gotenberg is a separate service, whether its URL points to `127.0.0.1`, another machine on a
+private network, or a remote provider. **Neither this plugin nor Grav controls how that
+instance is configured or secured.** Do not assume that a local address means the Grav
+administrator controls the service: security settings must be handled by whoever operates or
+controls the configured Gotenberg instance. Where that operator can configure it, consider
+disabling Chromium JavaScript and restricting its outbound requests with Gotenberg's Chromium
+deny-list, IP restrictions, or network policy. These are defense in depth, not settings the
+plugin can enforce; disabling JavaScript alone does not prevent resource requests.
+
+The plugin sanitizes page content and configured headers/footers for Gotenberg: it removes
+active and resource-loading markup, event-handler and inline-style attributes, keeps common
+print markup, and only permits safe web/mail links and local raster images (which are uploaded
+with the conversion). Ordinary external hyperlinks may remain clickable in the PDF; opening one
+is a reader action, not a resource fetch during conversion. This sanitizer applies only to
+Gotenberg; php-pdf retains its existing behavior. The sanitizer is a defense-in-depth measure,
+not a substitute for securing the service itself.
+
+For a remote service, the rendered HTML and the fonts and images needed by the document are
+uploaded to the configured endpoint. Use a service you trust or control, and use HTTPS where
+available. TLS verification helps authenticate an HTTPS endpoint, and optional Basic Auth can
+authenticate to the service; neither establishes whether its operator is trustworthy.
 
 ### Document
 

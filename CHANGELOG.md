@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Changed
+
+* Gotenberg now sanitizes page content and configured header/footer HTML before Chromium sees
+  it. Active/resource-loading markup, event handlers and inline styles are removed; safe links
+  and recognized local raster images remain (SVG images are omitted). php-pdf behavior is
+  unchanged.
+* The README now explains that the plugin and Grav do not control the configured Gotenberg
+  instance, including one addressed through localhost, and documents the remote upload/trust
+  implications and optional service-side hardening.
+
 ### Fixed
 
 * PDF images, logos and custom fonts are now resolved through canonical paths confined to the
