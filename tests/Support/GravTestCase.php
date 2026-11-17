@@ -45,4 +45,33 @@ abstract class GravTestCase extends TestCase
 
         return $etag;
     }
+
+    /**
+     * The HTML files of a captured Gotenberg conversion, by file name.
+     *
+     * The fake endpoint records the multipart body as it arrived, which is the
+     * only place the generated document can be inspected without a PDF text
+     * extractor. `index.html` is the document itself; `header.html` and
+     * `footer.html` are the running furniture.
+     *
+     * @return array<string, string>
+     */
+    protected static function multipartHtml(string $request): array
+    {
+        $parts = [];
+
+        preg_match_all(
+            '/Content-Disposition: form-data; name="files"; filename="([^"]+)"\r\n'
+            . 'Content-Type: text\/html\r\n\r\n(.*?)\r\n--/s',
+            $request,
+            $matches,
+            PREG_SET_ORDER
+        );
+
+        foreach ($matches as $match) {
+            $parts[$match[1]] = $match[2];
+        }
+
+        return $parts;
+    }
 }

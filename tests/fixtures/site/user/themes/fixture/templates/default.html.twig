@@ -1,5 +1,5 @@
 <!doctype html>
 <html lang="de">
 <head><meta charset="utf-8"><title>{{ page.title }}</title></head>
-<body>{{ page.content|raw }}</body>
+<body>{{ page.content|raw }}{% if pdf is defined and pdf.count is not null %}<span id="pdf-count">{{ pdf.count }}</span>{% endif %}</body>
 </html>

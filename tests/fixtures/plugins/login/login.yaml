@@ -1,0 +1,12 @@
+# The fixture Login plugin is inert until a test opts it in.
+#
+# A site therefore behaves exactly like one without the Login plugin, which is
+# the state Grav's own CI checkout is in, and which the PDF plugin's conservative
+# fallback has to handle.
+enabled: false
+
+# Same default as the real plugin. A test that needs an ancestor's rules to
+# reach a child switches this on — in the plugin configuration, to prove the
+# defaults are merged into the authorizer's configuration, or in the page header,
+# to prove the page wins.
+parent_acl: false

@@ -274,16 +274,29 @@ final class GravSite
     }
 
     /**
-     * Rewrite the plugin configuration and forget Grav's compiled config.
+     * Rewrite the PDF plugin configuration and forget Grav's compiled config.
      *
      * @param array<string, mixed> $config
      */
     public function configure(array $config): void
     {
-        $config = $config + ['engine' => 'php-pdf'];
+        $this->configurePlugin('pdf', $config + ['engine' => 'php-pdf']);
+    }
 
+    /**
+     * Rewrite one plugin's configuration and forget Grav's compiled config.
+     *
+     * The fixture site ships a stand-in for the Login plugin (see
+     * `tests/fixtures/plugins/login`), disabled by default. Enabling it is a
+     * configuration change like any other, so the compiled configuration has to
+     * go or Grav keeps answering from the previous one.
+     *
+     * @param array<string, mixed> $config
+     */
+    public function configurePlugin(string $name, array $config): void
+    {
         file_put_contents(
-            $this->runDir . '/user/config/plugins/pdf.yaml',
+            $this->runDir . '/user/config/plugins/' . $name . '.yaml',
             '# Written by the test suite.' . "\n" . self::yaml($config)
         );
 
@@ -561,6 +574,11 @@ final class GravSite
         self::copyTree($fixture . '/user/pages', $runDir . '/user/pages');
         self::writeRasterFixture($runDir . '/user/pages/02.article/pixel.png');
         symlink(PDF_PLUGIN_DIR, $runDir . '/user/plugins/pdf');
+
+        // A fixture stand-in for the Login plugin. It is disabled in its own
+        // configuration, so a site behaves as if it were not installed until a
+        // test opts it in through `configurePlugin('login', ['enabled' => true])`.
+        symlink(PDF_TESTS_DIR . '/fixtures/plugins/login', $runDir . '/user/plugins/login');
 
         if ($bookItems > 0) {
             self::writeBook($runDir, $bookItems);

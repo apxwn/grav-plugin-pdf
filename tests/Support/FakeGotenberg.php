@@ -57,6 +57,16 @@ final class FakeGotenberg
         return is_file($this->capture) ? (string) file_get_contents($this->capture) : '';
     }
 
+    /**
+     * Forget the last request, so a test cannot read a neighbour's conversion.
+     */
+    public function clear(): void
+    {
+        if (is_file($this->capture)) {
+            @unlink($this->capture);
+        }
+    }
+
     public function stop(): void
     {
         if (is_resource($this->process)) {
