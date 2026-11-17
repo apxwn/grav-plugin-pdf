@@ -1,0 +1,72 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Unit (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 8.2 is the floor the plugin declares. The unit suite boots no CMS, so
+        # it can prove that floor.
+        php: ['8.2', '8.3', '8.4']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl
+          coverage: none
+
+      - name: Validate the test manifest
+        working-directory: tests
+        run: composer validate --no-check-publish --strict
+
+      - name: Install test dependencies
+        working-directory: tests
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run unit tests
+        working-directory: tests
+        run: vendor/bin/phpunit --testsuite unit
+
+  e2e:
+    name: End-to-end (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The end-to-end suite runs a real Grav, and Grav 2.x requires PHP 8.3.
+        # Testing it on 8.2 would fail before the plugin was reached.
+        php: ['8.3', '8.4']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, gd, dom, mbstring, zip, fileinfo, openssl
+          coverage: none
+
+      - name: Install test dependencies
+        working-directory: tests
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Install Grav
+        run: composer create-project getgrav/grav /tmp/grav --no-interaction --prefer-dist
+
+      - name: Run end-to-end tests
+        working-directory: tests
+        env:
+          GRAV_ROOT: /tmp/grav
+        run: vendor/bin/phpunit --testsuite e2e

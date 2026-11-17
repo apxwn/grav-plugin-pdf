@@ -1,0 +1,21 @@
+# Minimal site for the end-to-end suite.
+#
+# The plugin only takes over `.pdf` requests and never renders a theme for them,
+# but Grav itself refuses to boot the frontend without a theme, and the tests
+# still ask for ordinary HTML pages to warm the caches. Hence the small fixture
+# theme and the `pages.theme` key — Grav reads the theme from `pages.theme`, not
+# from a top-level `theme`.
+title: PDF fixture site
+pages:
+  theme: fixture
+languages:
+  supported:
+    - de
+    - ru
+  default_lang: de
+  content_fallback:
+    de:
+      - de
+    ru:
+      - de
+      - ru

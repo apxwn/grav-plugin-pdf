@@ -9,3 +9,4 @@
 /.gitattributes export-ignore
 /.gitignore export-ignore
 /build-release.sh export-ignore
+/tests export-ignore

@@ -31,6 +31,13 @@
 
 ### Added
 
+* **A test suite.** `tests/` holds unit tests for the build lock (`Lock`) and the document cache
+  (`Store`), and an end-to-end suite that runs a real Grav against a disposable fixture site:
+  `.pdf` routing and `404`, cache hit/`ETag`/`304`, one build per document with `503` for the
+  requests that arrive while it runs, and `build_timeout`. It runs in CI on PHP 8.2 (unit only)
+  and 8.3/8.4 (both tiers), and is excluded from the release archive. `Store` now takes its
+  directory and policies directly, with a `fromConfig()` factory for the plugin, so the cache can
+  be exercised without booting the CMS.
 * `build_timeout` (default `0`) bounds a single build with `set_time_limit()` and restores PHP's
   own limit afterwards. `0`, the default, changes nothing. It covers preparing and rendering the
   document but not streaming it, so a slow download is never cut off; `gotenberg.timeout` still

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="bootstrap.php"
+         colors="true"
+         cacheDirectory=".run/phpunit"
+         failOnWarning="true"
+         failOnRisky="true"
+         beStrictAboutOutputDuringTests="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         displayDetailsOnTestsThatTriggerErrors="true">
+
+    <testsuites>
+        <!-- No Grav needed: plain classes, constructed directly. -->
+        <testsuite name="unit">
+            <directory>Unit</directory>
+        </testsuite>
+
+        <!-- A fixture Grav site served by `php -S`. Skipped when no Grav is found. -->
+        <testsuite name="e2e">
+            <directory>E2e</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory>../classes</directory>
+        </include>
+    </source>
+</phpunit>

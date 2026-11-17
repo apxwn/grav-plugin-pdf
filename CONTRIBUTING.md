@@ -70,32 +70,69 @@ things differently sets it in `user/config/plugins/pdf.yaml`.
 
 ## Tests
 
-There is no test suite. Before a release, verify at minimum:
+The suite lives in `tests/` and is development-only: it is excluded from the release archive and
+from the plugin's shipped `vendor/`. Its own dependencies are installed from
+`tests/composer.json`.
 
-1. a single-article PDF and a book PDF both return `200` with the expected page counts;
-2. `pdftotext` output is identical to the previous release's for the same content;
-3. with Gotenberg selected, inline styles, event attributes, remote image URLs, SVG and
-   embedded content do not reach Chromium, while fragment/web links and local raster images
-   still work;
-4. both engines' PDFs carry `/PageMode /UseOutlines`, and `mutool show <file> outline` lists
-   the expected article titles;
-5. a page that has not opted in still 404s;
-6. a page with `access:` rules answers `403` to a guest and `200` to a signed-in account that
-   holds the permission — both when the rules sit on the page and when they are inherited
-   from an ancestor with `login.parent_acl: true`;
-7. a book of mixed entries carries only the readable ones (`pdftotext`), and a book with no
+```bash
+cd tests
+composer install
+vendor/bin/phpunit                   # both tiers
+vendor/bin/phpunit --testsuite unit  # no Grav needed
+```
+
+| Tier | Needs | Covers |
+|---|---|---|
+| `tests/Unit` | nothing but PHP | `Lock`, `Store` — the build lock and the cache sweep |
+| `tests/E2e` | a Grav 2.x checkout | `.pdf` routing, cache/ETag/304, one build per document, `503`, `build_timeout` |
+
+The end-to-end suite builds a disposable site in `tests/.run/`. It symlinks `index.php`,
+`system/` and `vendor/` from the Grav installation it finds — `GRAV_ROOT`, else the checkout the
+plugin sits in — and gives the site its own `user/`, `cache/` and `logs/`. Your own site is never
+read or written. Without a Grav installation the end-to-end classes are skipped with a clear
+message, so the unit suite runs anywhere.
+
+`PDFTEST_BOOK_ITEMS` sizes the generated book (default is set per test class); `PDFTEST_KEEP=1`
+keeps the run directory and the server log after a failure.
+
+Fixture conventions that are easy to get wrong:
+
+* Grav reads the theme from `system.pages.theme`, not from a top-level `theme`, and renders
+  nothing without one — hence the tiny fixture theme;
+* a page needs a language suffix (`.de.md`); a page without one is not exportable in any
+  language, while its HTML still renders;
+* one folder is one page, and its children live in subfolders. Sibling `.md` files in one folder
+  are one page in several languages;
+* Grav's own caches are not safe against a cold parallel burst (two workers compiling the same
+  template answer `500`), so the harness warms them before a test may fire one.
+
+"The document is being rebuilt" is tested by taking the plugin's own lock from the test process,
+not by making a build slow, so those cases cannot flake. The parallel-burst test does depend on
+the build overlapping, and only requires `503`s when the measured build was slow enough.
+
+Test code declares `strict_types`; the plugin itself does not.
+
+### What still needs a hand before a release
+
+1. `pdftotext` output is identical to the previous release's for the same content, and
+   `pdfinfo` shows the expected page counts;
+2. with Gotenberg selected, inline styles, event attributes, remote image URLs, SVG and embedded
+   content do not reach Chromium, while fragment/web links and local raster images still work;
+3. both engines' PDFs carry `/PageMode /UseOutlines`, and `mutool show <file> outline` lists the
+   expected article titles;
+4. a page with `access:` rules answers `403` to a guest and `200` to a signed-in account that
+   holds the permission — both when the rules sit on the page and when they are inherited from
+   an ancestor with `login.parent_acl: true`;
+5. a book of mixed entries carries only the readable ones (`pdftotext`), and a book with no
    readable entry answers `403` instead of becoming a PDF of the listing page;
-8. a signed-in request leaves nothing in `cache/pdf/`, answers `Cache-Control: private,
-   no-store`, and sends no `ETag`; a guest request still caches and answers `304` to
-   `If-None-Match`;
-9. `php -l` passes on every PHP file:
+6. a signed-in request leaves nothing in `cache/pdf/`, answers `Cache-Control: private,
+   no-store`, and sends no `ETag`;
+7. the Admin screens load — the plugin configuration and a page's **PDF** tab;
+8. `php -l` passes on every PHP file:
 
    ```bash
    find . -name '*.php' -not -path './vendor/*' -exec php -l {} +
    ```
-
-10. the Admin screens load — the plugin configuration and a page's **PDF** tab;
-11. the new files land in `cache/pdf/`, and `bin/grav clear-cache` removes them.
 
 ## Release
 
@@ -113,9 +150,9 @@ There is no test suite. Before a release, verify at minimum:
    ./build-release.sh          # writes ../grav-plugin-pdf-<version>.zip
    ```
 
-   The script ships the sources and the trimmed `vendor/`, and excludes `.git/`,
-   `node_modules/`, and anything the plugin writes at runtime (`cache/`, `tmp/`, `logo/`
-   uploads).
+   The script ships the sources and the trimmed `vendor/`, and excludes `.git/`, `node_modules/`,
+   the test suite (`tests/`), and anything the plugin writes at runtime (`cache/`, `tmp/`,
+   `logo/` uploads).
 
 4. Install the archive into a clean Grav and repeat the checks above.
 

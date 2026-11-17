@@ -7,6 +7,9 @@
 # /logo/*  whatever the Admin file field uploaded. The folder itself is kept,
 #          because an empty one is what the field expects to find.
 #
+# /tests/vendor/  PHPUnit and its dependencies, installed from tests/composer.json.
+# /tests/.run/    the fixture sites the end-to-end suite builds and serves.
+#
 # vendor/ is deliberately tracked. Grav's GPM installs a plugin by downloading
 # the repository archive, so a plugin whose dependencies are not committed is
 # broken for anyone who installs it from Admin or with `bin/gpm install pdf`.
@@ -14,3 +17,5 @@
 /tmp/
 /logo/*
 !/logo/.gitkeep
+/tests/vendor/
+/tests/.run/

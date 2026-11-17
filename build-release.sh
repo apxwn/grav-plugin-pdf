@@ -51,6 +51,7 @@ rsync -a \
     --exclude '/node_modules/' \
     --exclude '/cache/' \
     --exclude '/tmp/' \
+    --exclude '/tests/' \
     --exclude '/build-release.sh' \
     --exclude '/.DS_Store' \
     --exclude '/vendor/*/*/tests/' \

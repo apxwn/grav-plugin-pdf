@@ -37,11 +37,27 @@ class Store
     private int $ttl;
     private bool $enabled;
 
-    public function __construct(Grav $grav, Config $config)
+    /**
+     * The cache is just a directory and two policies: it holds no Grav state,
+     * which is what lets a test build one without booting the CMS.
+     */
+    public function __construct(string $dir, int $ttl = 86400, bool $enabled = true)
     {
-        $this->dir = Paths::cacheDir($grav, $config);
-        $this->ttl = (int) $config->global('cache_ttl', 86400);
-        $this->enabled = (bool) $config->global('cache', true);
+        $this->dir = $dir;
+        $this->ttl = $ttl;
+        $this->enabled = $enabled;
+    }
+
+    /**
+     * The cache as this site configures it.
+     */
+    public static function fromConfig(Grav $grav, Config $config): self
+    {
+        return new self(
+            Paths::cacheDir($grav, $config),
+            (int) $config->global('cache_ttl', 86400),
+            (bool) $config->global('cache', true)
+        );
     }
 
     public function path(string $key): string

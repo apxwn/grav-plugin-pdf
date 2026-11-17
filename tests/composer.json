@@ -1,0 +1,33 @@
+{
+    "name": "apxwn/grav-plugin-pdf-tests",
+    "description": "Test suite for the Grav PDF plugin. Development only; not shipped with the plugin.",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.2",
+        "ext-curl": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Grav\\Plugin\\Pdf\\": "../classes/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Grav\\Plugin\\Pdf\\Tests\\": "Support/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test:unit": "phpunit --testsuite unit",
+        "test:e2e": "phpunit --testsuite e2e"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

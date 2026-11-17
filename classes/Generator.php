@@ -163,7 +163,7 @@ class Generator
         // it is neither read from nor written to the shared cache.
         $cacheable = $this->cacheableForViewer();
 
-        $store = new Store($this->grav, $this->config);
+        $store = Store::fromConfig($this->grav, $this->config);
         $key = $this->fingerprint($page, $readable, $mode);
         $router = new Router($this->grav, $this->config);
         $engine = $router->plan();
