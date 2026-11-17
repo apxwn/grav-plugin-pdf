@@ -5,6 +5,7 @@ namespace Grav\Plugin\Pdf;
 use Grav\Common\Data\Data;
 use Grav\Common\Grav;
 use Grav\Common\Page\Interfaces\PageInterface;
+use Grav\Common\User\Interfaces\UserInterface;
 use Grav\Plugin\Pdf\Engine\Document;
 use Grav\Plugin\Pdf\Engine\Gotenberg\Unavailable;
 use Grav\Plugin\Pdf\Engine\Router;
@@ -54,6 +55,16 @@ class Generator
 
     /** The parts a dateline can be built from, in the default order. */
     private const META_DEFAULTS = ['date', 'category', 'author'];
+
+    /**
+     * The cache namespace, deliberately separate from the plugin version.
+     *
+     * Bump this when a change makes documents already on disk unsafe to serve,
+     * even when there is no release number to put in the name. 2: page access is
+     * enforced, and a document rendered for a signed-in visitor is never cached,
+     * so documents produced under the old rules must not be picked up again.
+     */
+    private const CACHE_VERSION = 2;
 
     /** Warnings already logged, so a book does not repeat one per entry. */
     private static array $fontWarnings = [];
@@ -110,16 +121,35 @@ class Generator
      */
     public function respond(PageInterface $page): void
     {
+        // The page first, before a single entry is read: a PDF must never be
+        // easier to get than the HTML page it prints.
+        if (!Access::allows($this->grav, $page)) {
+            $this->refuse($page);
+
+            return;
+        }
+
         $items = Items::resolve($page, $this->config);
+
+        // The shape comes from the whole collection, not from what is left
+        // after filtering: a book whose entries are all unreadable is still a
+        // book, and must not quietly become a PDF of the listing page itself.
         $mode = Items::mode($page, $this->config, $items);
+        $readable = Items::readable($items, $this->grav);
+
+        if ($mode === 'book' && $items && !$readable) {
+            $this->refuse($page);
+
+            return;
+        }
 
         if ($mode === 'book') {
             $max = (int) $this->config->forPage($page, 'max_items', 500);
 
-            if ($max > 0 && count($items) > $max) {
+            if ($max > 0 && count($readable) > $max) {
                 $this->grav['log']->warning(sprintf(
                     'PDF: collection export rejected because it contains %d items; the configured maximum is %d.',
-                    count($items),
+                    count($readable),
                     $max
                 ));
 
@@ -129,18 +159,29 @@ class Generator
             }
         }
 
+        // A document rendered for a signed-in visitor is that visitor's alone:
+        // it is neither read from nor written to the shared cache.
+        $cacheable = $this->cacheableForViewer();
+
         $store = new Store($this->grav, $this->config);
-        $key = $this->fingerprint($page, $items, $mode);
+        $key = $this->fingerprint($page, $readable, $mode);
         $router = new Router($this->grav, $this->config);
         $engine = $router->plan();
 
         $file = $store->path($key . '.' . $engine);
 
-        if (!$store->isFresh($file)) {
+        if (!$cacheable || !$store->isFresh($file)) {
             $store->prepare($file);
 
             try {
-                [$file, $engine] = $this->produce($router, $this->document($page, $items, $mode), $store, $key, $engine);
+                [$file, $engine] = $this->produce(
+                    $router,
+                    $this->document($page, $readable, $mode),
+                    $store,
+                    $key,
+                    $engine,
+                    $cacheable
+                );
             } catch (Unavailable $e) {
                 $this->grav['log']->error(sprintf(
                     'PDF: Gotenberg conversion failed with fallback disabled (service %s): %s',
@@ -151,10 +192,33 @@ class Generator
                 $this->plain(503, "The PDF could not be generated. Please try again later.\n");
             }
 
-            $store->prune($file);
+            if ($cacheable) {
+                $store->prune($file);
+            }
         }
 
-        $this->send($page, $file, $key, $engine);
+        $this->send($page, $file, $key, $engine, $cacheable);
+    }
+
+    /**
+     * May this document be read from, or written to, the shared cache?
+     *
+     * Page content is rendered for whoever asked: Twig and shortcodes can show
+     * one visitor something another must not see, and Grav's own content cache
+     * refuses those renders for exactly that reason. A guest render is therefore
+     * the only one that can be handed to someone else; a signed-in request —
+     * including a session still waiting for its two-factor answer — always gets
+     * a document built for it alone and thrown away afterwards.
+     *
+     * Authorization is separate from this and is checked on every request (see
+     * Access), so this only decides whether a document may be shared, not
+     * whether it may be served.
+     */
+    private function cacheableForViewer(): bool
+    {
+        $user = $this->grav['user'] ?? null;
+
+        return !($user instanceof UserInterface && $user->authenticated);
     }
 
     /**
@@ -167,17 +231,43 @@ class Generator
      * `…php-pdf`, so the next request after Gotenberg recovers builds a
      * Gotenberg one instead of reusing the substitute for a whole `cache_ttl`.
      *
+     * When the document may not be shared (`$cacheable` false) it is left under
+     * its temporary name and the caller removes it after streaming: nothing
+     * rendered for one viewer may become a cache hit for another.
+     *
      * @return array{0: string, 1: string} the file to serve, and the engine that produced it
      */
-    private function produce(Router $router, Document $document, Store $store, string $key, string $engine): array
-    {
+    private function produce(
+        Router $router,
+        Document $document,
+        Store $store,
+        string $key,
+        string $engine,
+        bool $cacheable = true
+    ): array {
         $temp = $store->temp($key);
+        $keep = null;
 
         try {
             $used = $router->render($document, $temp);
 
             if (!is_file($temp) || (int) filesize($temp) === 0) {
                 throw new \RuntimeException(sprintf('PDF: the %s engine produced no document.', $used));
+            }
+
+            $this->grav['log']->info(sprintf(
+                'PDF: generated %s (%s, %d items, %s engine%s)',
+                $key,
+                $document->mode,
+                count($document->data['entries']),
+                $used,
+                $cacheable ? '' : ', not cached for a signed-in visitor'
+            ));
+
+            if (!$cacheable) {
+                $keep = $temp;
+
+                return [$temp, $used];
             }
 
             $target = $store->path($key . '.' . $used);
@@ -191,17 +281,9 @@ class Generator
                 ));
             }
 
-            $this->grav['log']->info(sprintf(
-                'PDF: generated %s (%s, %d items, %s engine)',
-                $key,
-                $document->mode,
-                count($document->data['entries']),
-                $used
-            ));
-
             return [$target, $used];
         } finally {
-            if (is_file($temp)) {
+            if ($temp !== $keep && is_file($temp)) {
                 @unlink($temp);
             }
         }
@@ -233,7 +315,9 @@ class Generator
      * A fingerprint of everything that feeds the document.
      *
      * Any edit to any source page changes it, so the cached file name changes
-     * with it and a stale document can never be served.
+     * with it and a stale document can never be served. The list it is given is
+     * the one actually rendered — a book carries only the entries this visitor
+     * may read, and a different set is a different document.
      */
     private function fingerprint(PageInterface $page, array $items, string $mode): string
     {
@@ -241,6 +325,7 @@ class Generator
 
         $parts = [
             'v' . PdfPlugin::VERSION,
+            'c' . self::CACHE_VERSION,
             $mode,
             (string) $this->grav['language']->getLanguage(),
             (string) $page->route(),
@@ -1084,14 +1169,22 @@ class Generator
      * that was configured, or the substitute that stood in for it. It is on
      * every response, cache hit or not, because a fallback has to be visible
      * without reading the log.
+     *
+     * A document that was not cached was built for this visitor alone: it gets
+     * no validators (so no `304` can hand out a document from a fingerprint that
+     * does not cover the viewer) and no permission to be stored anywhere, and
+     * the file is deleted once it has been read.
      */
-    private function send(PageInterface $page, string $file, string $key, string $engine): void
+    private function send(PageInterface $page, string $file, string $key, string $engine, bool $cacheable = true): void
     {
         $etag = '"' . $key . '"';
 
-        if (trim((string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {
+        if ($cacheable && trim((string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {
             header('HTTP/1.1 304 Not Modified');
             header('ETag: ' . $etag);
+            // Same policy as the full response: a `304` that says something
+            // else would make a caching client throw away the document it holds.
+            header('Cache-Control: private, max-age=0, must-revalidate');
             header('X-PDF-Engine: ' . $engine);
             exit;
         }
@@ -1101,18 +1194,62 @@ class Generator
         header('Content-Type: application/pdf');
         header('Content-Disposition: inline; filename="' . $name . '"; filename*=UTF-8\'\'' . rawurlencode($name));
         header('Content-Length: ' . (string) filesize($file));
-        header('ETag: ' . $etag);
-        header('Last-Modified: ' . gmdate('D, d M Y H:i:s', (int) filemtime($file)) . ' GMT');
-        header('Cache-Control: private, max-age=0, must-revalidate');
         header('X-Robots-Tag: noindex, nofollow');
         header('X-PDF-Engine: ' . $engine);
+
+        if ($cacheable) {
+            header('ETag: ' . $etag);
+            header('Last-Modified: ' . gmdate('D, d M Y H:i:s', (int) filemtime($file)) . ' GMT');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+        } else {
+            header('Cache-Control: private, no-store');
+        }
 
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
 
         readfile($file);
+
+        if (!$cacheable) {
+            @unlink($file);
+        }
+
         exit;
+    }
+
+    /**
+     * Refuse a document, without saying why.
+     *
+     * Whether the page itself is restricted or a book simply had nothing
+     * readable left is not something the response should disclose: behind a
+     * refusal is content this visitor may not see, and its shape is not theirs
+     * to learn either.
+     */
+    private function refuse(PageInterface $page): void
+    {
+        $this->grav['log']->info(sprintf(
+            'PDF: refused %s for %s.',
+            (string) $page->route(),
+            Access::viewer($this->grav)
+        ));
+
+        $this->plain(403, $this->forbidden() . "\n");
+    }
+
+    /**
+     * The refusal a visitor reads, in the language being served.
+     */
+    private function forbidden(): string
+    {
+        $key = 'PLUGIN_PDF.FORBIDDEN';
+        $message = (string) $this->grav['language']->translate($key);
+
+        // translate() hands back the key itself when nothing matched, and a
+        // site may have an older languages.yaml without this string.
+        return $message !== $key && trim($message) !== ''
+            ? $message
+            : 'This document is not available to you.';
     }
 
     private function filename(PageInterface $page): string
@@ -1165,6 +1302,8 @@ class Generator
     {
         http_response_code($status);
         header('Content-Type: text/plain; charset=utf-8');
+        header('Cache-Control: no-store');
+        header('X-Robots-Tag: noindex, nofollow');
 
         echo $message;
         exit;

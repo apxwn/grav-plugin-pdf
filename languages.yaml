@@ -1,7 +1,8 @@
 # Translations for the Admin screens.
 #
 # Keys used by blueprints.yaml (plugin settings) come first in each language
-# block, then the keys used by blueprints/pdf.yaml (the per-page tab).
+# block, then the keys used by blueprints/pdf.yaml (the per-page tab). The last
+# key in each block is a message a visitor can see rather than an Admin label.
 #
 # Contributions welcome: copy a block, translate the values, and change nothing
 # else. Keys that are missing fall back to English, so a partial translation is
@@ -162,6 +163,10 @@ en:
     PAGE_CHILDREN_HELP: "What to use when this page has no collection."
     PAGE_MAX_ITEMS: Maximum articles
 
+    # Shown to a visitor, not to an administrator: the answer to a .pdf request
+    # for a page they may not read.
+    FORBIDDEN: "This document is not available to you."
+
 de:
   PLUGIN_PDF:
     TAB: PDF
@@ -317,6 +322,10 @@ de:
     PAGE_CHILDREN_HELP: "Was verwendet wird, wenn diese Seite keine Collection besitzt."
     PAGE_MAX_ITEMS: Höchstzahl an Artikeln
 
+    # Für Besucher, nicht für Administratoren: die Antwort auf eine .pdf-Anfrage
+    # für eine Seite, die der Besucher nicht lesen darf.
+    FORBIDDEN: "Dieses Dokument steht Ihnen nicht zur Verfügung."
+
 ru:
   PLUGIN_PDF:
     TAB: PDF
@@ -471,3 +480,7 @@ ru:
     PAGE_CHILDREN: Если коллекции нет
     PAGE_CHILDREN_HELP: "Что использовать, если у этой страницы нет коллекции."
     PAGE_MAX_ITEMS: Максимум статей
+
+    # Для посетителя, не для администратора: ответ на запрос .pdf страницы,
+    # которую посетитель читать не вправе.
+    FORBIDDEN: "Этот документ вам недоступен."

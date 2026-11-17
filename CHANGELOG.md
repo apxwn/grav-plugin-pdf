@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Security
+
+* **A PDF no longer bypasses page access.** `.pdf` requests are answered before Grav asks the
+  page to render, so the Login plugin's authorization never ran for them: a page with
+  `access:` rules — opted in directly, through a parent, or with `all_pages` — handed its PDF
+  to any visitor, and a book carried protected entries into a public document. Every request
+  now asks the Login plugin whether the visitor may read the page (`parent_acl` included)
+  and answers `403` when they may not. A book is built only from the entries the visitor may
+  read, and is refused as a whole when entries existed but none of them is left. Without the
+  Login plugin, a page that declares access rules on itself or on an ancestor is refused,
+  because nothing else would protect it.
+* **A document rendered for a signed-in visitor is no longer cached.** Page content is
+  rendered for whoever asked — Twig and shortcodes can differ per viewer — so a signed-in
+  request neither reads nor writes the disk cache, gets `Cache-Control: private, no-store`
+  and no validators, and its file is deleted after streaming. Cached documents are also
+  namespaced anew, so nothing produced under the old rules is served after the update.
+
 ### Changed
 
 * Gotenberg now sanitizes page content and configured header/footer HTML before Chromium sees

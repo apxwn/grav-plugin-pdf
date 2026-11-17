@@ -48,7 +48,7 @@ class State
         $count = null;
 
         if ((bool) $config->forPage($page, 'show_count', false)) {
-            $count = count(Items::resolve($page, $config));
+            $count = count(Items::readable(Items::resolve($page, $config), $grav));
         }
 
         return [

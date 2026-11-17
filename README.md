@@ -14,6 +14,8 @@ before until its frontmatter opts in, so the plugin can be shipped enabled.
 
 * Requests are served from `<page-url>.pdf` — `/blog.pdf` next to `/blog`.
 * A `.pdf` request that has not been opted in is a plain 404.
+* A `.pdf` request never bypasses page access: a page the visitor may not read is refused, and
+  a book carries only the entries they may read. See [Access control](#access-control).
 * The text is only ever in the language being served. A page that exists only in German
   is simply not exportable as a Russian PDF.
 * All assets are local. Fonts come from the DejaVu faces bundled with the plugin (Latin,
@@ -69,7 +71,7 @@ user/plugins/pdf/
 ├── blueprints.yaml          the plugin's Admin screen
 ├── blueprints/pdf.yaml      the "PDF" tab added to every page in Admin
 ├── languages.yaml           button captions and Admin labels (en, de, ru)
-├── classes/                 Config, Items, Html, Store, Paths, Generator, State, Admin
+├── classes/                 Config, Access, Items, Html, Store, Paths, Generator, State, Admin
 ├── classes/Engine/          the renderers: PhpPdf, Gotenberg, Router
 ├── fonts/                   the DejaVu faces the plugin embeds
 ├── templates/pdf/           print templates + the example button partial
@@ -136,6 +138,28 @@ Set `inherit: false` in the plugin configuration if you want every page to be ex
 with inheritance on, one of its ancestors) explicitly sets `pdf.enabled: false`. Useful for a
 quick look at how a section turns out; `false` (the default) is what you want in production.
 
+### Access control
+
+A PDF is never easier to get than the page it prints. Opting a page in does not opt out of
+its access rules: every `.pdf` request asks the Login plugin whether this visitor may read
+the page — the same `isUserAuthorizedForPage()` check the HTML page goes through — so
+`access:` frontmatter, `parent_acl`, and a session that still owes its two-factor answer all
+apply.
+
+* A page the visitor may not read answers `403` with a short plain-text message, not a
+  redirect to the login form. The text is `PLUGIN_PDF.FORBIDDEN` in `languages.yaml`.
+* A book carries only the entries the visitor may read. If entries existed and none of them
+  survived, the request is refused as a whole rather than turned into a PDF of the listing
+  page. `pdf: { enabled: false }` on an entry leaves it out for everyone.
+* The Login plugin is the only authority consulted. Without it — not installed, or switched
+  off — `access:` protects nothing on the site, so a page that declares access rules, on
+  itself or on an ancestor, is refused instead of exported.
+* Any other plugin that denies through the Login plugin's `PageAuthorizeEvent` is honoured
+  too, because that is the event being dispatched.
+
+What is *not* covered: a plugin that gates a page in its own `onPageInitialized` handler.
+A `.pdf` request is answered before that event, so only page access is enforced here.
+
 ---
 
 ## 3. Putting a link on the site
@@ -156,7 +180,7 @@ The plugin exposes a `pdf` variable while a page renders, and a `pdf_url()` func
 | `mode` | `book` or `article` |
 | `url` | the PDF URL, e.g. `/blog.pdf` |
 | `label` | a translated caption, e.g. *Download as book* |
-| `count` | the number of articles, or `null` (see `show_count`) |
+| `count` | the number of articles the visitor may read, or `null` (see `show_count`) |
 | `title` | the page title |
 
 `pdf_url()` builds the same link for any page:
@@ -564,11 +588,20 @@ nothing and is logged as a missing character.
 | `show_count` | `false` | put the article count in `pdf.count` and the caption |
 
 A cached document is named after a fingerprint of everything that produced it — the plugin
-version, the mode, the language, the effective settings, the logo file and its timestamp,
-and each item's `route:modified`. Edit any source page and the name changes, so a stale PDF
-can never be served. `cache_ttl` is only a backstop for changes the fingerprint cannot see,
-such as an edit to a print template. Requests carry an `ETag` and answer `If-None-Match`
-with `304`.
+version, the cache namespace, the mode, the language, the effective settings, the logo file
+and its timestamp, and each item's `route:modified`. Edit any source page and the name
+changes, so a stale PDF can never be served. A book's entry list is the one that was actually
+rendered, so narrowing it changes the name too. `cache_ttl` is only a backstop for changes
+the fingerprint cannot see, such as an edit to a print template. Requests carry an `ETag`
+and answer `If-None-Match` with `304`.
+
+**A document rendered for a signed-in visitor is never cached.** Page content is rendered for
+whoever asked — Twig and shortcodes can show one visitor something another must not see — so
+a signed-in request reads nothing from the disk cache, writes nothing to it, and gets
+`Cache-Control: private, no-store` with no validators. The file is deleted once it has been
+streamed. Guests share the cache, and a guest's rights are decided by the page's access rules
+alone, so a guest document can safely be handed to any guest. Access itself is checked on
+every request regardless, cache hit or not.
 
 Generated documents live in Grav's cache stream, so `bin/grav clear-cache` empties them
 along with everything else and nothing has to be writable inside the plugin folder.

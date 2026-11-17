@@ -36,7 +36,8 @@ pdfimages -list /tmp/x.pdf | head
 |---|---|
 | `pdf.php` | event wiring: request interception, Twig namespace, `pdf` global, blueprint extension |
 | `classes/Config.php` | effective settings for a page, including inheritance |
-| `classes/Items.php` | what goes into the document: the collection, the language filter, the mode |
+| `classes/Access.php` | whether the requesting visitor may read a page, and with which fallback when the Login plugin cannot answer |
+| `classes/Items.php` | what goes into the document: the collection, the language filter, the mode, the readable subset |
 | `classes/Html.php` | the page's rendered HTML turned into printable HTML: images, anchors, dropped elements |
 | `classes/Generator.php` | settings normalisation, document assembly, engine invocation |
 | `classes/Admin.php` | values the Admin screens cannot get from a static blueprint (the font dropdowns) |
@@ -79,14 +80,22 @@ There is no test suite. Before a release, verify at minimum:
 4. both engines' PDFs carry `/PageMode /UseOutlines`, and `mutool show <file> outline` lists
    the expected article titles;
 5. a page that has not opted in still 404s;
-6. `php -l` passes on every PHP file:
+6. a page with `access:` rules answers `403` to a guest and `200` to a signed-in account that
+   holds the permission — both when the rules sit on the page and when they are inherited
+   from an ancestor with `login.parent_acl: true`;
+7. a book of mixed entries carries only the readable ones (`pdftotext`), and a book with no
+   readable entry answers `403` instead of becoming a PDF of the listing page;
+8. a signed-in request leaves nothing in `cache/pdf/`, answers `Cache-Control: private,
+   no-store`, and sends no `ETag`; a guest request still caches and answers `304` to
+   `If-None-Match`;
+9. `php -l` passes on every PHP file:
 
    ```bash
    find . -name '*.php' -not -path './vendor/*' -exec php -l {} +
    ```
 
-7. the Admin screens load — the plugin configuration and a page's **PDF** tab;
-8. the new files land in `cache/pdf/`, and `bin/grav clear-cache` removes them.
+10. the Admin screens load — the plugin configuration and a page's **PDF** tab;
+11. the new files land in `cache/pdf/`, and `bin/grav clear-cache` removes them.
 
 ## Release
 

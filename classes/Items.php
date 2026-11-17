@@ -53,6 +53,27 @@ class Items
     }
 
     /**
+     * The items of a document this visitor may actually read.
+     *
+     * The listing page being readable says nothing about its children: a book
+     * is assembled from pages that each carry their own rules. Called with the
+     * full candidate list, so the caller can still decide the document's shape
+     * from the collection as it was defined.
+     *
+     * @param PageInterface[] $items
+     * @return PageInterface[]
+     */
+    public static function readable(array $items, ?Grav $grav = null): array
+    {
+        $grav ??= Grav::instance();
+
+        return array_values(array_filter(
+            $items,
+            static fn (PageInterface $item): bool => Access::allows($grav, $item)
+        ));
+    }
+
+    /**
      * The document shape for a page.
      */
     public static function mode(PageInterface $page, Config $config, array $items): string
