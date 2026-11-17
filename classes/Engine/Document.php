@@ -44,7 +44,7 @@ final class Document
      */
     public function render(string $template, array $extra = []): string
     {
-        return $this->grav['twig']->twig()->render($template, $this->data + $extra);
+        return $this->grav['twig']->twig()->render($template, $extra + $this->data);
     }
 
     /**

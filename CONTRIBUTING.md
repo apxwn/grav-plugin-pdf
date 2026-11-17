@@ -83,8 +83,8 @@ vendor/bin/phpunit --testsuite unit  # no Grav needed
 
 | Tier | Needs | Covers |
 |---|---|---|
-| `tests/Unit` | nothing but PHP | `Lock`, `Store` — the build lock and the cache sweep |
-| `tests/E2e` | a Grav 2.x checkout | `.pdf` routing, cache/ETag/304, one build per document, `503`, `build_timeout` |
+| `tests/Unit` | nothing but PHP | `Lock`, `Store`, Gotenberg HTML sanitizer and uploaded asset filtering |
+| `tests/E2e` | a Grav 2.x checkout | `.pdf` routing, cache/ETag/304, one build per document, `503`, `build_timeout`, sanitized Gotenberg multipart upload to a local fake endpoint |
 
 The end-to-end suite builds a disposable site in `tests/.run/`. It symlinks `index.php`,
 `system/` and `vendor/` from the Grav installation it finds — `GRAV_ROOT`, else the checkout the
@@ -116,8 +116,8 @@ Test code declares `strict_types`; the plugin itself does not.
 
 1. `pdftotext` output is identical to the previous release's for the same content, and
    `pdfinfo` shows the expected page counts;
-2. with Gotenberg selected, inline styles, event attributes, remote image URLs, SVG and embedded
-   content do not reach Chromium, while fragment/web links and local raster images still work;
+2. with a real Gotenberg service selected, rendered text and page counts are sensible, links and
+   local raster images work, and no unexpected network fetches occur;
 3. both engines' PDFs carry `/PageMode /UseOutlines`, and `mutool show <file> outline` lists the
    expected article titles;
 4. a page with `access:` rules answers `403` to a guest and `200` to a signed-in account that

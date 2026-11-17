@@ -264,7 +264,7 @@ final class GravSite
      */
     public function configure(array $config): void
     {
-        $config = ['engine' => 'php-pdf'] + $config;
+        $config = $config + ['engine' => 'php-pdf'];
 
         file_put_contents(
             $this->runDir . '/user/config/plugins/pdf.yaml',
@@ -511,6 +511,7 @@ final class GravSite
         }
 
         self::copyTree($fixture . '/user/pages', $runDir . '/user/pages');
+        self::writeRasterFixture($runDir . '/user/pages/02.article/pixel.png');
         symlink(PDF_PLUGIN_DIR, $runDir . '/user/plugins/pdf');
 
         if ($bookItems > 0) {
@@ -560,6 +561,19 @@ MD);
                 "---\ntitle: Artikel " . sprintf('%03d', $i) . "\ndate: '$date'\n"
                 . "pdf:\n  enabled: true\n---\n" . $body
             );
+        }
+    }
+
+    /** A tiny valid local raster used by the Gotenberg asset tests. */
+    private static function writeRasterFixture(string $path): void
+    {
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pWQAAAAASUVORK5CYII=',
+            true
+        );
+
+        if ($png === false || file_put_contents($path, $png) === false) {
+            throw new RuntimeException('Could not write the local raster fixture.');
         }
     }
 

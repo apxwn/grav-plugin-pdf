@@ -163,8 +163,10 @@ final class Gotenberg implements Engine
         foreach (array_values($entries) as $index => $entry) {
             $anchor = (string) ($entry['anchor'] ?? 'pdf-entry-' . $index);
 
+            $rawContent = (string) ($entry['content'] ?? '');
+            $sanitizedContent = HtmlSanitizer::sanitize($rawContent);
             [$content, $headings] = $this->headings(
-                HtmlSanitizer::sanitize((string) ($entry['content'] ?? '')),
+                $sanitizedContent,
                 $depth
             );
 
