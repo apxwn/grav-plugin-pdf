@@ -14,6 +14,10 @@
 
 ### Fixed
 
+* Gotenberg PDFs now open with the bookmarks panel visible, like documents from the bundled
+  renderer. Chromium already wrote the outline but omitted the catalog flag that asks a viewer
+  to show it; the plugin adds `/PageMode /UseOutlines` after conversion without changing the
+  generated PDF otherwise.
 * PDF images, logos and custom fonts are now resolved through canonical paths confined to the
   Grav installation. Traversal paths and symlinks pointing outside it are rejected.
 * Book collections now omit children whose effective `pdf.enabled` setting is `false`, matching

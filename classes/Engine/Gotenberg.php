@@ -7,6 +7,7 @@ use Grav\Plugin\Pdf\Config;
 use Grav\Plugin\Pdf\Engine\Gotenberg\Assets;
 use Grav\Plugin\Pdf\Engine\Gotenberg\Client;
 use Grav\Plugin\Pdf\Engine\Gotenberg\HtmlSanitizer;
+use Grav\Plugin\Pdf\Engine\Gotenberg\Outline;
 use Grav\Plugin\Pdf\Furniture;
 use Grav\Plugin\Pdf\Generator;
 use Grav\Plugin\PdfPlugin;
@@ -30,7 +31,9 @@ use Grav\Plugin\PdfPlugin;
  *    after layout, so the contents links without numbers;
  *  - it makes a bookmark of every heading, so anything deeper than `toc_depth`
  *    is turned into a styled paragraph — the ids stay, the outline matches what
- *    the built-in engine produces.
+ *    the built-in engine produces. Chromium leaves the bookmarks panel closed;
+ *    the plugin sets `/PageMode /UseOutlines` on the finished PDF so it opens
+ *    the same way as one from the built-in engine.
  */
 final class Gotenberg implements Engine
 {
@@ -129,6 +132,15 @@ final class Gotenberg implements Engine
                 $files,
                 $file
             );
+
+            $outline = Outline::apply($file);
+
+            if ($outline !== null) {
+                $this->grav['log']->warning(sprintf(
+                    'PDF: the Gotenberg bookmarks panel could not be opened: %s',
+                    $outline
+                ));
+            }
         } finally {
             foreach ($written as $path) {
                 @unlink($path);

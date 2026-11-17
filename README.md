@@ -256,7 +256,8 @@ fallback off makes a Gotenberg failure an error instead.
 
 Gotenberg uses Chromium rather than php-pdf. A book's contents are links-only because page
 numbers are unknown before layout; the cover and articles are kept in one HTML document so
-anchors, footnotes and named destinations survive. Its PDF outline follows `toc_depth`.
+anchors, footnotes and named destinations survive. Its PDF outline follows `toc_depth`, and the
+finished document gets the catalog flag that opens the bookmarks panel, as with php-pdf.
 Fonts used by the document are uploaded with each conversion. Running headers/footers are
 separate Chromium documents and may use the host's fallback font. Use raster images for
 Gotenberg documents: SVG images and logos are omitted because SVG can carry its own resource

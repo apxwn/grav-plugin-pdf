@@ -45,6 +45,7 @@ pdfimages -list /tmp/x.pdf | head
 | `classes/State.php` | the `pdf` Twig variable |
 | `classes/Engine/` | the renderers: `PhpPdf` (bundled), `Gotenberg` (external), and the `Router` that picks one |
 | `classes/Engine/Gotenberg/HtmlSanitizer.php` | Gotenberg-only allowlist for page content and running furniture before Chromium conversion |
+| `classes/Engine/Gotenberg/Outline.php` | adds the viewer flag that opens the outline Chromium wrote |
 | `fonts/` | the DejaVu faces the plugin embeds |
 | `templates/pdf/` | print stylesheets, cover, contents, article, book layout, example button |
 
@@ -75,15 +76,17 @@ There is no test suite. Before a release, verify at minimum:
 3. with Gotenberg selected, inline styles, event attributes, remote image URLs, SVG and
    embedded content do not reach Chromium, while fragment/web links and local raster images
    still work;
-4. a page that has not opted in still 404s;
-5. `php -l` passes on every PHP file:
+4. both engines' PDFs carry `/PageMode /UseOutlines`, and `mutool show <file> outline` lists
+   the expected article titles;
+5. a page that has not opted in still 404s;
+6. `php -l` passes on every PHP file:
 
    ```bash
    find . -name '*.php' -not -path './vendor/*' -exec php -l {} +
    ```
 
-6. the Admin screens load — the plugin configuration and a page's **PDF** tab;
-7. the new files land in `cache/pdf/`, and `bin/grav clear-cache` removes them.
+7. the Admin screens load — the plugin configuration and a page's **PDF** tab;
+8. the new files land in `cache/pdf/`, and `bin/grav clear-cache` removes them.
 
 ## Release
 
