@@ -104,7 +104,16 @@ Fixture conventions that are easy to get wrong:
 * one folder is one page, and its children live in subfolders. Sibling `.md` files in one folder
   are one page in several languages;
 * Grav's own caches are not safe against a cold parallel burst (two workers compiling the same
-  template answer `500`), so the harness warms them before a test may fire one.
+  template answer `500`), so the harness warms them before a test may fire one;
+* the harness drops every `GRAV_*` variable from the server's environment and points
+  `GRAV_ROOT` at the fixture root. Without that, a `GRAV_ROOT` exported for the test process —
+  as CI does — makes the server boot that installation instead of the fixture, and every
+  request answers 404 from the bare Grav skeleton.
+
+The end-to-end classes start the site with a generous readiness budget, because a cold Grav
+compiles its configuration, blueprints and pages on the first request. The failure message
+names the last status and cURL error, which is usually enough to tell "still compiling" from
+"wrong site".
 
 "The document is being rebuilt" is tested by taking the plugin's own lock from the test process,
 not by making a build slow, so those cases cannot flake. The parallel-burst test does depend on

@@ -34,7 +34,17 @@ final class GravSite
     /** Workers, so a burst of requests is actually served concurrently. */
     private const WORKERS = 4;
 
-    private const READY_TIMEOUT = 20.0;
+    /**
+     * How long the site may take to answer its first request.
+     *
+     * Generous on purpose: a cold Grav compiles its configuration, blueprints
+     * and pages on the first request, and a CI runner can spend far longer on
+     * that than a development machine does.
+     */
+    private const READY_TIMEOUT = 120.0;
+
+    /** How long one readiness attempt may take. */
+    private const READY_REQUEST_TIMEOUT = 30.0;
 
     private const BOOK_ITEMS_VAR = 'PDFTEST_BOOK_ITEMS';
 
@@ -43,6 +53,12 @@ final class GravSite
 
     /** @var resource|null */
     private $lock = null;
+
+    /** The transport error of the last request, for a failure message. */
+    private string $lastError = '';
+
+    /** The status the last readiness request answered with. */
+    private int $lastStatus = 0;
 
     private function __construct(
         private readonly string $gravRoot,
@@ -375,7 +391,10 @@ final class GravSite
 
     private function status(string $path): int
     {
-        return $this->get($path, [], 5.0)['status'];
+        $response = $this->get($path, [], self::READY_REQUEST_TIMEOUT);
+        $this->lastStatus = $response['status'];
+
+        return $response['status'];
     }
 
     /**
@@ -384,19 +403,26 @@ final class GravSite
     private function waitFor(callable $ready): void
     {
         $deadline = microtime(true) + self::READY_TIMEOUT;
+        $attempts = 0;
 
         while (microtime(true) < $deadline) {
+            $attempts++;
+
             if ($ready()) {
                 return;
             }
 
-            usleep(100_000);
+            usleep(250_000);
         }
 
-        throw new RuntimeException(
-            "The fixture site did not answer within " . self::READY_TIMEOUT . " seconds.\n"
-            . $this->serverLog()
-        );
+        throw new RuntimeException(sprintf(
+            "The fixture site did not answer /de/home with 200 within %.0f seconds (%d attempts, last status %d).%s\n%s",
+            self::READY_TIMEOUT,
+            $attempts,
+            $this->lastStatus,
+            $this->lastError !== '' ? ' Last error: ' . $this->lastError . '.' : '',
+            $this->serverLog()
+        ));
     }
 
     /**
@@ -410,6 +436,8 @@ final class GravSite
         $body = curl_exec($handle);
 
         if ($body === false) {
+            $this->lastError = sprintf('%s (errno %d)', curl_error($handle), curl_errno($handle));
+
             return null;
         }
 
@@ -458,11 +486,31 @@ final class GravSite
     }
 
     /**
+     * The environment the fixture server runs with.
+     *
+     * `GRAV_ROOT` is the one that matters: the test process needs it to find
+     * the Grav checkout, but the server must not inherit it. If it does, Grav
+     * boots *that* installation — its themes, its pages, its cache — and the
+     * fixture site is never served at all. On CI, where the workflow exports
+     * `GRAV_ROOT` for the test step, that is exactly what used to happen: every
+     * readiness request answered 404 from the bare Grav skeleton.
+     *
+     * Every `GRAV_*` path override is therefore dropped and the root is set to
+     * the temporary site itself.
+     *
      * @return array<string, string>
      */
     private function environment(): array
     {
         $env = getenv();
+
+        foreach (array_keys($env) as $name) {
+            if (str_starts_with((string) $name, 'GRAV_')) {
+                unset($env[$name]);
+            }
+        }
+
+        $env['GRAV_ROOT'] = $this->runDir;
         $env['PHP_CLI_SERVER_WORKERS'] = (string) self::WORKERS;
 
         return $env;
