@@ -170,34 +170,171 @@ class Generator
 
         $file = $store->path($key . '.' . $engine);
 
-        if (!$cacheable || !$store->isFresh($file)) {
-            $store->prepare($file);
+        try {
+            if (!$cacheable) {
+                // A document built for this visitor alone is deleted after it
+                // has been streamed, so there is nothing here for a second
+                // request to wait for: build it, and let it go.
+                $store->prepare($file);
 
-            try {
-                [$file, $engine] = $this->produce(
+                [$file, $engine] = $this->withinBudget(fn (): array => $this->produce(
                     $router,
                     $this->document($page, $readable, $mode),
                     $store,
                     $key,
                     $engine,
-                    $cacheable
-                );
-            } catch (Unavailable $e) {
-                $this->grav['log']->error(sprintf(
-                    'PDF: Gotenberg conversion failed with fallback disabled (service %s): %s',
-                    self::safeServiceAddress($router->url()),
-                    self::safeLogMessage($e->getMessage())
+                    false
                 ));
-
-                $this->plain(503, "The PDF could not be generated. Please try again later.\n");
+            } elseif (!$store->isFresh($file)) {
+                [$file, $engine] = $this->refresh($router, $page, $readable, $mode, $store, $key, $engine);
             }
+        } catch (Unavailable $e) {
+            $this->grav['log']->error(sprintf(
+                'PDF: Gotenberg conversion failed with fallback disabled (service %s): %s',
+                self::safeServiceAddress($router->url()),
+                self::safeLogMessage($e->getMessage())
+            ));
 
-            if ($cacheable) {
-                $store->prune($file);
-            }
+            $this->plain(503, $this->message(
+                'PLUGIN_PDF.FAILED',
+                'The PDF could not be generated. Please try again later.'
+            ) . "\n");
         }
 
         $this->send($page, $file, $key, $engine, $cacheable);
+    }
+
+    /**
+     * Produce a fresh document, one request at a time.
+     *
+     * A cache miss is the expensive path, and it is reached by every concurrent
+     * hit at once after an edit: without a guard each of them renders the same
+     * large book into its own scratch file, spending the CPU and the memory
+     * again while the others do the same. The first request to take the lock
+     * therefore builds, and the others are answered from the newest document
+     * already on disk for that key — or told to come back when there is none.
+     *
+     * Locking is skipped when the cache is off, because a site that asked for a
+     * fresh document per request gets one. It also fails open: a cache
+     * directory that cannot hold the lock file still builds, unguarded.
+     *
+     * @param array<int, PageInterface> $items
+     * @return array{0: string, 1: string} the file to serve, and the engine that produced it
+     */
+    private function refresh(
+        Router $router,
+        PageInterface $page,
+        array $items,
+        string $mode,
+        Store $store,
+        string $key,
+        string $engine
+    ): array {
+        $file = $store->path($key . '.' . $engine);
+
+        // The lock lives next to the documents, so the directory comes first.
+        $store->prepare($file);
+
+        $lock = $store->cacheEnabled() ? $store->lock($key) : null;
+
+        if ($lock === null && $store->cacheEnabled()) {
+            return $this->whileBuilding($store, $key);
+        }
+
+        try {
+            // The build may have finished between the miss and the lock, and a
+            // Gotenberg failure in the meantime may have moved the plan to the
+            // bundled engine: look again before doing any work.
+            $engine = $router->plan();
+            $file = $store->path($key . '.' . $engine);
+
+            if ($store->isFresh($file)) {
+                return [$file, $engine];
+            }
+
+            [$file, $engine] = $this->withinBudget(fn (): array => $this->produce(
+                $router,
+                $this->document($page, $items, $mode),
+                $store,
+                $key,
+                $engine
+            ));
+
+            $store->prune($file);
+
+            return [$file, $engine];
+        } finally {
+            $lock?->release();
+        }
+    }
+
+    /**
+     * Answer a request while another one is building the same document.
+     *
+     * A file under a final name is always whole, and the key it is filed under
+     * is the fingerprint of what went into it — which is why this request was
+     * looking for it at all — so the newest one is safe to serve even when
+     * `cache_ttl` has run out. When there is none, the normal case right after
+     * an edit because the edit produced a new key, saying so is better than
+     * letting the visitor join the pile-up.
+     *
+     * @return array{0: string, 1: string} the file to serve, and the engine that produced it
+     */
+    private function whileBuilding(Store $store, string $key): array
+    {
+        $latest = $store->latest($key);
+
+        if ($latest !== null) {
+            $this->grav['log']->info(sprintf(
+                'PDF: served %s (%s engine) while it is being rebuilt.',
+                $key,
+                $latest[1]
+            ));
+
+            return $latest;
+        }
+
+        $this->grav['log']->info(sprintf('PDF: %s is being built by another request.', $key));
+
+        $this->plain(503, $this->message(
+            'PLUGIN_PDF.BUSY',
+            'This document is being generated. Please try again in a moment.'
+        ) . "\n", ['Retry-After: 5']);
+    }
+
+    /**
+     * Build under the configured `build_timeout`, then restore PHP's own limit.
+     *
+     * The limit covers everything that turns pages into a document — preparing
+     * the entries as well as drawing them — but not streaming the finished
+     * file, so a slow download is never cut off. Zero leaves PHP's own limit
+     * alone, and a host that does not allow `set_time_limit()` keeps its own.
+     * Waiting on Gotenberg is bounded by `gotenberg.timeout` in addition.
+     *
+     * Running into the limit is a fatal error, which no `catch` or `finally`
+     * can see, so the scratch file is left for Store::prune() to sweep up and
+     * the response is whatever Grav's error handler makes of the fatal.
+     *
+     * @param callable(): array{0: string, 1: string} $build
+     * @return array{0: string, 1: string}
+     */
+    private function withinBudget(callable $build): array
+    {
+        $timeout = (int) $this->config->global('build_timeout', 0);
+
+        if ($timeout <= 0 || !function_exists('set_time_limit')) {
+            return $build();
+        }
+
+        $previous = (int) ini_get('max_execution_time');
+
+        @set_time_limit($timeout);
+
+        try {
+            return $build();
+        } finally {
+            @set_time_limit($previous);
+        }
     }
 
     /**
@@ -1242,14 +1379,21 @@ class Generator
      */
     private function forbidden(): string
     {
-        $key = 'PLUGIN_PDF.FORBIDDEN';
-        $message = (string) $this->grav['language']->translate($key);
+        return $this->message('PLUGIN_PDF.FORBIDDEN', 'This document is not available to you.');
+    }
 
-        // translate() hands back the key itself when nothing matched, and a
-        // site may have an older languages.yaml without this string.
-        return $message !== $key && trim($message) !== ''
-            ? $message
-            : 'This document is not available to you.';
+    /**
+     * A visitor-facing message in the language being served.
+     *
+     * `translate()` hands back the key itself when nothing matched, and a site
+     * may have an older languages.yaml without the string, so the fallback is
+     * used in both cases.
+     */
+    private function message(string $key, string $fallback): string
+    {
+        $message = trim((string) $this->grav['language']->translate($key));
+
+        return $message !== '' && $message !== $key ? $message : $fallback;
     }
 
     private function filename(PageInterface $page): string
@@ -1298,12 +1442,21 @@ class Generator
             : $message;
     }
 
-    private function plain(int $status, string $message): void
+    /**
+     * Answer with plain text and stop. Never returns.
+     *
+     * @param string[] $headers extra response headers, e.g. `Retry-After`
+     */
+    private function plain(int $status, string $message, array $headers = []): never
     {
         http_response_code($status);
         header('Content-Type: text/plain; charset=utf-8');
         header('Cache-Control: no-store');
         header('X-Robots-Tag: noindex, nofollow');
+
+        foreach ($headers as $header) {
+            header($header);
+        }
 
         echo $message;
         exit;

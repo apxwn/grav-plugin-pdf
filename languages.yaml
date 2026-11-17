@@ -127,6 +127,8 @@ en:
     SECONDS: seconds
     CACHE_PATH: Cache directory
     CACHE_PATH_HELP: "Empty uses cache/pdf in Grav's cache directory, which bin/grav clear-cache empties. A stream, an absolute path or a Grav-relative path all work."
+    BUILD_TIMEOUT: Build time limit
+    BUILD_TIMEOUT_HELP: "Seconds one PDF build may take before it is aborted. 0 leaves PHP's own limit alone."
     MAX_ITEMS: Maximum articles in a book
     MAX_ITEMS_HELP: "0 means no limit."
     SHOW_COUNT: Add the article count to the button caption
@@ -164,8 +166,11 @@ en:
     PAGE_MAX_ITEMS: Maximum articles
 
     # Shown to a visitor, not to an administrator: the answer to a .pdf request
-    # for a page they may not read.
+    # for a page they may not read, to one that arrives while the same document
+    # is being built by another request, and to one that could not be built.
     FORBIDDEN: "This document is not available to you."
+    BUSY: "This document is being generated. Please try again in a moment."
+    FAILED: "The PDF could not be generated. Please try again later."
 
 de:
   PLUGIN_PDF:
@@ -286,6 +291,8 @@ de:
     SECONDS: Sekunden
     CACHE_PATH: Verzeichnis des Zwischenspeichers
     CACHE_PATH_HELP: "Leer verwendet cache/pdf im Cache-Verzeichnis von Grav, das bin/grav clear-cache leert. Ein Stream, ein absoluter Pfad oder ein Pfad relativ zum Grav-Verzeichnis sind möglich."
+    BUILD_TIMEOUT: Zeitlimit für die Erzeugung
+    BUILD_TIMEOUT_HELP: "Sekunden, die eine PDF-Erzeugung dauern darf, bevor sie abgebrochen wird. 0 lässt das Zeitlimit von PHP unverändert."
     MAX_ITEMS: Höchstzahl an Artikeln in einem Buch
     MAX_ITEMS_HELP: "0 bedeutet: keine Grenze."
     SHOW_COUNT: Anzahl der Artikel in die Schaltflächenbeschriftung aufnehmen
@@ -323,8 +330,12 @@ de:
     PAGE_MAX_ITEMS: Höchstzahl an Artikeln
 
     # Für Besucher, nicht für Administratoren: die Antwort auf eine .pdf-Anfrage
-    # für eine Seite, die der Besucher nicht lesen darf.
+    # für eine Seite, die der Besucher nicht lesen darf, auf eine, die eintrifft,
+    # während dasselbe Dokument bereits erzeugt wird, und auf eine, deren
+    # Dokument nicht erzeugt werden konnte.
     FORBIDDEN: "Dieses Dokument steht Ihnen nicht zur Verfügung."
+    BUSY: "Dieses Dokument wird gerade erzeugt. Bitte versuchen Sie es gleich noch einmal."
+    FAILED: "Die PDF konnte nicht erzeugt werden. Bitte versuchen Sie es später noch einmal."
 
 ru:
   PLUGIN_PDF:
@@ -445,6 +456,8 @@ ru:
     SECONDS: секунд
     CACHE_PATH: Каталог кэша
     CACHE_PATH_HELP: "Пусто — cache/pdf в каталоге кэша Grav, который очищает bin/grav clear-cache. Допустимы поток, абсолютный путь или путь относительно корня Grav."
+    BUILD_TIMEOUT: Ограничение времени создания
+    BUILD_TIMEOUT_HELP: "Сколько секунд может длиться создание PDF, прежде чем оно будет прервано. 0 оставляет ограничение PHP без изменений."
     MAX_ITEMS: Максимум статей в книге
     MAX_ITEMS_HELP: "0 — без ограничений."
     SHOW_COUNT: Добавлять число статей в надпись на кнопке
@@ -482,5 +495,9 @@ ru:
     PAGE_MAX_ITEMS: Максимум статей
 
     # Для посетителя, не для администратора: ответ на запрос .pdf страницы,
-    # которую посетитель читать не вправе.
+    # которую посетитель читать не вправе, на запрос, пришедший во время
+    # создания того же документа, и на запрос, документ для которого создать
+    # не удалось.
     FORBIDDEN: "Этот документ вам недоступен."
+    BUSY: "Документ создаётся. Пожалуйста, попробуйте ещё раз через минуту."
+    FAILED: "Не удалось создать PDF. Пожалуйста, попробуйте позже."

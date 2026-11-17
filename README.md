@@ -582,6 +582,7 @@ nothing and is logged as a missing character.
 | `cache` | `true` | cache generated PDFs on disk |
 | `cache_ttl` | `86400` | seconds; `0` never expires |
 | `cache_path` | `''` | empty means `cache/pdf` in Grav's cache directory |
+| `build_timeout` | `0` | seconds one build may take; `0` = PHP's own limit |
 | `max_items` | `500` | refuse a book larger than this (`0` = no limit) |
 | `inherit` | `true` | a page inherits `pdf:` from its parents |
 | `all_pages` | `false` | export every page regardless of frontmatter |
@@ -607,6 +608,28 @@ Generated documents live in Grav's cache stream, so `bin/grav clear-cache` empti
 along with everything else and nothing has to be writable inside the plugin folder.
 `cache_path` moves them elsewhere; a stream, an absolute path or a Grav-root-relative path
 all work. The directory is created on demand.
+
+**One request builds a document, the others do not.** A cache miss is the expensive path, and
+after an edit every concurrent hit on the same page misses at once. The first request to take
+the lock builds; the others are answered from the newest document already on disk under that
+key — even one past `cache_ttl`, because the key is the fingerprint and the content behind it
+has not changed — or, when there is nothing to serve yet, which is the normal case right after
+an edit because the edit produced a new key, with `HTTP 503` and `Retry-After`. Nothing is
+queued, so no request is held waiting behind a build. The lock is advisory: it is not taken
+with `cache: false` (that setting asks for a fresh document per request), and it fails open
+when the cache directory cannot hold the lock file, so a filesystem without working `flock` —
+some network mounts — behaves exactly as before.
+
+A build writes to a hidden `.part` file and renames it into place, so a half-written document
+is never served and never counted as a cached one. PHP does not run a request's cleanup when it
+kills the script for exceeding its time limit, so `Store::prune()` also removes `.part` files
+older than an hour, and lock files that nothing has held for a day.
+
+`build_timeout` bounds one build: reading the entries as well as drawing them, but not sending
+the finished file, so a slow download is never cut off. PHP's own limit is restored afterwards,
+and `0`, the default, leaves it alone. A build that hits the limit ends the request the way any
+PHP timeout does, and the scratch file it left behind is removed by the sweep described above.
+`gotenberg.timeout` bounds a wait on the service in addition.
 
 `max_items` is a guard, not a limit: a collection larger than it produces `HTTP 413` with a
 plain-text explanation, rather than a request that never finishes. A 200-page book takes a
@@ -750,6 +773,14 @@ scripts need a font that has them; see
 [Scripts the bundled fonts do not cover](#scripts-the-bundled-fonts-do-not-cover).
 
 **`HTTP 413`.** The collection is bigger than `max_items`. Raise it, or set it to `0`.
+
+**`HTTP 503`.** Another request is already building that exact document and there is nothing
+cached yet to serve instead. Try again in a moment.
+
+**A build stops part-way with a server error.** `build_timeout` — or PHP's own
+`max_execution_time` — cut it short, and the error is whatever Grav reports for a fatal error.
+Its temporary file is removed by the next build. Raise the limit, or set `build_timeout` to `0`
+to leave PHP's own alone.
 
 **The document is huge.** Turn `images` off, or lower `images_width`. Two hundred pages of
 text with no images come to well under a megabyte.

@@ -19,6 +19,20 @@ use Grav\Common\Grav;
  */
 class Store
 {
+    /**
+     * How old a scratch file has to be before it counts as abandoned.
+     *
+     * A `.part` file belongs to a request that is still running, and PHP does
+     * not run `finally` when it kills a script for exceeding `max_execution_time`
+     * or when the whole process is killed, so a build that died leaves one
+     * behind. This is deliberately longer than any build a site is expected to
+     * allow, because deleting the scratch file of a live build would break it.
+     */
+    private const PART_MAX_AGE = 3600;
+
+    /** How long a lock file may sit unused before it is removed. */
+    private const LOCK_MAX_AGE = 86400;
+
     private string $dir;
     private int $ttl;
     private bool $enabled;
@@ -50,6 +64,72 @@ class Store
     }
 
     /**
+     * Is the shared disk cache in use at all?
+     *
+     * With `cache: false` every request is meant to build its own copy, so one
+     * cannot be answered from a neighbour's build either.
+     */
+    public function cacheEnabled(): bool
+    {
+        return $this->enabled;
+    }
+
+    /**
+     * Take the build lock for a key, or null when another request holds it.
+     *
+     * One lock per key, not per file: a key is one document, whichever engine
+     * happens to print it, so a request that is waiting must not start a second
+     * build under the other engine's name.
+     */
+    public function lock(string $key): ?Lock
+    {
+        return Lock::acquire(rtrim($this->dir, '/') . '/.' . $key . '.lock');
+    }
+
+    /**
+     * The newest complete document on disk for a key, and what produced it.
+     *
+     * Used while another request is building that same key: a file under a
+     * final name is always whole (see temp()), and the key it is filed under is
+     * the fingerprint of what went into it, so it can be served even when
+     * `cache_ttl` has run out.
+     *
+     * @return array{0: string, 1: string}|null file, engine
+     */
+    public function latest(string $key): ?array
+    {
+        if (!is_dir($this->dir)) {
+            return null;
+        }
+
+        $found = null;
+        $newest = -1;
+
+        foreach ((array) glob(rtrim($this->dir, '/') . '/' . $key . '.*.pdf') as $file) {
+            if (!is_string($file) || !is_file($file)) {
+                continue;
+            }
+
+            $modified = (int) filemtime($file);
+
+            if ($modified > $newest) {
+                $newest = $modified;
+                $found = $file;
+            }
+        }
+
+        if ($found === null) {
+            return null;
+        }
+
+        // `…/<key>.<engine>.pdf`, and the engine is part of the response.
+        $engine = basename($found, '.pdf');
+        $engine = $engine === $key ? '' : substr($engine, strlen($key) + 1);
+
+        return [$found, $engine !== '' ? $engine : 'php-pdf'];
+    }
+
+    /**
      * Is the cached document still usable?
      */
     public function isFresh(string $file): bool
@@ -78,25 +158,75 @@ class Store
     }
 
     /**
-     * Drop expired documents. Called on write only, so a busy site pays for it
-     * rarely, and never on a cache hit.
+     * Drop expired documents and the working files of requests that died.
+     *
+     * Called on write only, so a busy site pays for it rarely, and never on a
+     * cache hit.
      */
     public function prune(string $keep): void
     {
-        if (!$this->enabled || !is_dir($this->dir)) {
+        if (!is_dir($this->dir)) {
             return;
         }
 
-        $edge = $this->ttl > 0 ? time() - $this->ttl : null;
+        $dir = rtrim($this->dir, '/');
 
-        foreach ((array) glob(rtrim($this->dir, '/') . '/*.pdf') as $file) {
-            if (!is_string($file) || $file === $keep) {
+        if ($this->enabled) {
+            $edge = $this->ttl > 0 ? time() - $this->ttl : null;
+
+            foreach ((array) glob($dir . '/*.pdf') as $file) {
+                if (!is_string($file) || $file === $keep) {
+                    continue;
+                }
+
+                if ($edge === null || (int) filemtime($file) < $edge) {
+                    @unlink($file);
+                }
+            }
+        }
+
+        // Abandoned builds and locks go whether or not the cache is on: they are
+        // written by a request that is no longer running, and would otherwise
+        // stay until somebody cleared the cache by hand.
+        $this->collect($dir, '.*.part', self::PART_MAX_AGE);
+        $this->collect($dir, '.*.lock', self::LOCK_MAX_AGE, true);
+    }
+
+    /**
+     * Remove working files older than `$age` seconds.
+     *
+     * The scratch file of a live build is younger than any sane `PART_MAX_AGE`,
+     * but a lock file is created once and kept, so age alone would delete locks
+     * that are in use. When `$lock` is set such a file is only taken away while
+     * it can be locked exclusively — nothing holds it, nothing is waiting on it.
+     */
+    private function collect(string $dir, string $pattern, int $age, bool $lock = false): void
+    {
+        $edge = time() - $age;
+
+        foreach ((array) glob($dir . '/' . $pattern) as $file) {
+            if (!is_string($file) || !is_file($file) || (int) filemtime($file) >= $edge) {
                 continue;
             }
 
-            if ($edge === null || (int) filemtime($file) < $edge) {
+            if (!$lock) {
                 @unlink($file);
+
+                continue;
             }
+
+            $handle = @fopen($file, 'c');
+
+            if ($handle === false) {
+                continue;
+            }
+
+            if (flock($handle, LOCK_EX | LOCK_NB)) {
+                @unlink($file);
+                flock($handle, LOCK_UN);
+            }
+
+            fclose($handle);
         }
     }
 }

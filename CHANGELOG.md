@@ -29,6 +29,17 @@
   instance, including one addressed through localhost, and documents the remote upload/trust
   implications and optional service-side hardening.
 
+### Added
+
+* `build_timeout` (default `0`) bounds a single build with `set_time_limit()` and restores PHP's
+  own limit afterwards. `0`, the default, changes nothing. It covers preparing and rendering the
+  document but not streaming it, so a slow download is never cut off; `gotenberg.timeout` still
+  bounds a wait on the service. A build that hits the limit fails the way any PHP timeout does,
+  and the scratch file it leaves is removed by the same sweep.
+* A visitor who asks for a document that is being built by another request, with nothing cached
+  yet to serve instead, now gets `503` with `Retry-After` and a translated message
+  (`PLUGIN_PDF.BUSY`, en/de/ru), instead of a request that piles onto the build.
+
 ### Fixed
 
 * Gotenberg PDFs now open with the bookmarks panel visible, like documents from the bundled
@@ -41,6 +52,21 @@
   the opt-out behavior for standalone PDFs.
 * PDF error responses no longer disclose collection limits, the Gotenberg address, or renderer
   errors to visitors; the operational details are logged server-side instead.
+* **Concurrent requests no longer build the same document in parallel.** A cache miss — which
+  every request hits at once after an edit — used to send each of them through a full render of
+  the same book, multiplying the CPU and memory of an already expensive request and, on a small
+  PHP-FPM pool, risking an out-of-memory kill that took unrelated requests with it. Anonymous
+  requests now take a per-document lock; the first one builds, and the others are served the
+  newest complete document on disk for that key (still correct past `cache_ttl`, because the key
+  is the content fingerprint) or answered `503` with `Retry-After` when there is nothing to
+  serve. Nothing is queued, so no worker waits behind a build. Signed-in requests keep building
+  their private document without a lock, and `cache: false` keeps rebuilding per request.
+* **Abandoned build files are cleaned up.** A build writes to a hidden `.part` file and renames
+  it into place; a request killed by PHP's time limit or by the process dying cannot run that
+  cleanup, and nothing ever collected the leftovers, so the cache directory slowly filled with
+  full-size fragments. `prune()` now removes `.part` files older than an hour, and lock files no
+  request has held for a day, on every write. Neither was ever served as a document, so nothing
+  a visitor receives changes.
 
 ## 1.4.0 — 2026-11-15
 

@@ -447,6 +447,12 @@ form:
           label: PLUGIN_PDF.CACHE_PATH
           help: PLUGIN_PDF.CACHE_PATH_HELP
 
+        build_timeout:
+          type: number
+          label: PLUGIN_PDF.BUILD_TIMEOUT
+          help: PLUGIN_PDF.BUILD_TIMEOUT_HELP
+          append: PLUGIN_PDF.SECONDS
+
         max_items:
           type: number
           label: PLUGIN_PDF.MAX_ITEMS

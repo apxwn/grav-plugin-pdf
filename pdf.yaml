@@ -212,6 +212,15 @@ cache: true
 cache_ttl: 86400   # seconds; 0 = never expire
 cache_path: ''     # empty = cache/pdf in Grav's cache directory
 
+# How long one build may take before PHP aborts it (0 = leave PHP's own limit
+# alone). It covers turning the pages into a document — reading the entries as
+# well as drawing them — but not sending the finished file, so a slow download is
+# never cut off. A build that runs into it fails the way any PHP timeout does,
+# reported by Grav's error handler; the scratch file it was writing is picked up
+# by the sweep described under "cache". Time spent waiting on Gotenberg is
+# bounded by `gotenberg.timeout` in addition to this.
+build_timeout: 0
+
 # Refuse to build a book larger than this (0 = no limit). A 500-article book is
 # already a very slow request, and this stops a mistake from becoming an outage.
 max_items: 500
