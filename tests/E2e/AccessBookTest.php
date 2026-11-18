@@ -87,6 +87,52 @@ final class AccessBookTest extends GravTestCase
         self::assertStringContainsString('PDFTEST-BOOK-PUBLIC-ONE', $html['index.html']);
         self::assertStringContainsString('PDFTEST-BOOK-PUBLIC-TWO', $html['index.html']);
         self::assertStringContainsString('PDFTEST-BOOK-PROTECTED', $html['index.html']);
+        self::assertStringNotContainsString('PDFTEST-BOOK-OPTED-OUT', $html['index.html']);
+    }
+
+    public function testAnExplicitlyDisabledChildIsOmittedFromTheDirectChildrenBook(): void
+    {
+        self::$site->clearPdfCache();
+        self::$gotenberg->clear();
+
+        $response = self::$site->get('/de/access/book.pdf');
+
+        self::assertSame(200, $response['status'], self::$site->serverLog() . "\n" . self::$site->gravLog());
+
+        $html = self::multipartHtml(self::$gotenberg->capturedRequest());
+        self::assertArrayHasKey('index.html', $html, 'The endpoint received no document.');
+        self::assertStringContainsString('PDFTEST-BOOK-PUBLIC-ONE', $html['index.html']);
+        self::assertStringContainsString('PDFTEST-BOOK-PUBLIC-TWO', $html['index.html']);
+        self::assertStringNotContainsString('PDFTEST-BOOK-OPTED-OUT', $html['index.html']);
+
+        self::assertSame(404, self::$site->get('/de/access/book/opted-out.pdf')['status']);
+    }
+
+    public function testAnExplicitlyDisabledChildIsOmittedFromAContentItemsBookEvenWithAllPages(): void
+    {
+        self::$site->configure([
+            'all_pages' => true,
+            'engine' => 'gotenberg',
+            'gotenberg' => [
+                'url' => self::$gotenberg->url(),
+                'fallback' => false,
+                'timeout' => 10,
+                'connect_timeout' => 2,
+            ],
+        ]);
+        self::$site->clearPdfCache();
+        self::$gotenberg->clear();
+
+        $response = self::$site->get('/de/access/collection-book.pdf');
+
+        self::assertSame(200, $response['status'], self::$site->serverLog() . "\n" . self::$site->gravLog());
+
+        $html = self::multipartHtml(self::$gotenberg->capturedRequest());
+        self::assertArrayHasKey('index.html', $html, 'The endpoint received no document.');
+        self::assertStringContainsString('PDFTEST-COLLECTION-INHERITED', $html['index.html']);
+        self::assertStringNotContainsString('PDFTEST-COLLECTION-OPTED-OUT', $html['index.html']);
+
+        self::assertSame(404, self::$site->get('/de/access/collection-book/opted-out.pdf')['status']);
     }
 
     public function testABookWithNothingReadableIsRefusedNotDowngraded(): void
