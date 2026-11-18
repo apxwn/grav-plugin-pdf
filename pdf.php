@@ -81,12 +81,21 @@ class PdfPlugin extends Plugin
     public function onPluginsInitialized(): void
     {
         // The font dropdowns in the Admin screens are filled by a static
-        // provider (see classes/Admin.php). A blueprint shipped on disk is
-        // trusted, but registering the provider keeps the field working if the
+        // provider (see classes/Admin.php). Grav 2.0.11+ allowlists dynamic
+        // blueprint callables; a blueprint shipped on disk is trusted there,
+        // but registering the provider keeps the field working if the
         // blueprint ever reaches Admin through an untrusted path.
-        \Grav\Common\Data\Blueprint::addAllowedDynamicCallable(
-            \Grav\Plugin\Pdf\Admin::class . '::fontOptions'
-        );
+        //
+        // The manifest requires Grav 2.0.11+, where the method exists. The
+        // guard stays as a defensive measure in case the plugin is force-
+        // installed into an older Grav: an unguarded call there is a fatal
+        // error on every request, not just a broken Admin dropdown. Older Grav
+        // has no allowlist, so the dropdowns still work without registration.
+        if (method_exists(\Grav\Common\Data\Blueprint::class, 'addAllowedDynamicCallable')) {
+            \Grav\Common\Data\Blueprint::addAllowedDynamicCallable(
+                \Grav\Plugin\Pdf\Admin::class . '::fontOptions'
+            );
+        }
 
         if ($this->isAdmin()) {
             return;

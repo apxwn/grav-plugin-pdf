@@ -57,7 +57,7 @@ rm -rf cache/twig/*
 
 | | |
 |---|---|
-| Grav | 1.7 or later (tested on 2.2.29) |
+| Grav | 2.0.11 or later (tested on 2.2.30) |
 | PHP | 8.2 or later, with `ext-dom`, `ext-mbstring` and `ext-zlib` |
 | php-pdf | bundled, always available as the default and fallback renderer |
 | Gotenberg | 9 or later — optional external service; PHP cURL extension required |

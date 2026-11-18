@@ -21,6 +21,10 @@
 
 ### Changed
 
+* The plugin now requires Grav 2.0.11 or later; Grav 1.7 support is dropped. An unconditional
+  call to `Blueprint::addAllowedDynamicCallable()` — introduced in 2.0.11 — made every request
+  fatal on older Grav. The call is now guarded, the manifest declares the real floor and
+  `compatibility: grav: ['2.0']`, and the README states the same requirement.
 * Gotenberg now sanitizes page content and configured header/footer HTML before Chromium sees
   it. Active/resource-loading markup, event handlers and inline styles are removed; safe links
   and recognized local raster images remain (SVG images are omitted). php-pdf behavior is
