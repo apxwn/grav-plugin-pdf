@@ -25,6 +25,9 @@
   call to `Blueprint::addAllowedDynamicCallable()` — introduced in 2.0.11 — made every request
   fatal on older Grav. The call is now guarded, the manifest declares the real floor and
   `compatibility: grav: ['2.0']`, and the README states the same requirement.
+* The E2E fixture disables Grav's pages-change check interval, so a touched page is seen on the
+  next request instead of leaving the burst test at the mercy of a 2-second cache window. The
+  build-count assertion now includes the server log and the burst ETags when it fails.
 * Gotenberg now sanitizes page content and configured header/footer HTML before Chromium sees
   it. Active/resource-loading markup, event handlers and inline styles are removed; safe links
   and recognized local raster images remain (SVG images are omitted). php-pdf behavior is

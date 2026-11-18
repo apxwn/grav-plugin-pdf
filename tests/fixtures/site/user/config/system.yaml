@@ -6,6 +6,11 @@
 # theme and the `pages.theme` key — Grav reads the theme from `pages.theme`, not
 # from a top-level `theme`.
 title: PDF fixture site
+cache:
+  # A touched fixture page must be visible on the very next request: with the
+  # default 2s interval Grav can reuse its page hash and miss the edit.
+  check:
+    interval: 0
 pages:
   theme: fixture
 languages:

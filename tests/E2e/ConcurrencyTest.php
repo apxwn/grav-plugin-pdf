@@ -126,7 +126,14 @@ final class ConcurrencyTest extends GravTestCase
         self::assertSame(
             1,
             $site->logCount('PDF: generated ') - $buildsBefore,
-            'Exactly one build may run for one document.'
+            sprintf(
+                "Exactly one build may run for one document.\n%s\nETags: %s",
+                $site->serverLog(),
+                implode(', ', array_map(
+                    static fn (array $response): string => $response['headers']['etag'] ?? '-',
+                    $responses
+                ))
+            )
         );
         self::assertSame([], $site->partFiles(), 'No half-written file may be left behind.');
         self::assertSame(
