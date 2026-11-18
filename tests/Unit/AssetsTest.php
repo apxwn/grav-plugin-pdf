@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Grav\Plugin\Pdf\Tests\Unit;
 
 use Grav\Plugin\Pdf\Engine\Gotenberg\Assets;
+use Grav\Plugin\Pdf\Paths;
 use PHPUnit\Framework\TestCase;
 
 final class AssetsTest extends TestCase
@@ -81,6 +82,54 @@ final class AssetsTest extends TestCase
 
         self::assertSame('', $assets->images('<img src="' . $outsideFile . '"><img src="' . $link . '">'));
         self::assertSame([], $assets->all());
+    }
+
+    public function testWithinGravAcceptsLocalFilesAndDirectories(): void
+    {
+        $file = self::$root . '/user/pages/article/local.png';
+        file_put_contents($file, 'local');
+
+        self::assertSame(realpath($file), Paths::withinGrav($file));
+        self::assertSame(realpath(dirname($file)), Paths::withinGrav(dirname($file), true));
+    }
+
+    public function testWithinGravRejectsTraversalAndSiblingPrefixPaths(): void
+    {
+        $outsideFile = self::$outside . '/outside.txt';
+        file_put_contents($outsideFile, 'outside');
+
+        $sibling = self::$root . '-sibling';
+        mkdir($sibling);
+        $siblingFile = $sibling . '/sibling.txt';
+        file_put_contents($siblingFile, 'sibling');
+
+        try {
+            self::assertNull(Paths::withinGrav(self::$root . '/../' . basename(self::$outside) . '/outside.txt'));
+            self::assertNull(Paths::withinGrav($siblingFile));
+            self::assertNull(Paths::withinGrav(self::$outside, true));
+        } finally {
+            self::removeTree($sibling);
+        }
+    }
+
+    public function testWithinGravRejectsSymlinksToOutsideFilesAndDirectories(): void
+    {
+        $outsideFile = self::$outside . '/linked.txt';
+        file_put_contents($outsideFile, 'outside');
+
+        $fileLink = self::$root . '/user/pages/article/linked-file.txt';
+        $directoryLink = self::$root . '/user/pages/article/linked-directory';
+
+        self::assertTrue(symlink($outsideFile, $fileLink));
+        self::assertTrue(symlink(self::$outside, $directoryLink));
+
+        try {
+            self::assertNull(Paths::withinGrav($fileLink));
+            self::assertNull(Paths::withinGrav($directoryLink, true));
+        } finally {
+            unlink($fileLink);
+            unlink($directoryLink);
+        }
     }
 
     private static function removeTree(string $path): void

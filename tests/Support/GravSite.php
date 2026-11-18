@@ -219,6 +219,24 @@ final class GravSite
         return 'http://127.0.0.1:' . $this->port . '/' . ltrim($path, '/');
     }
 
+    /** The disposable Grav root, for tests that need to add fixture files. */
+    public function rootDir(): string
+    {
+        return $this->runDir;
+    }
+
+    /** Forget cached page data after a test edits one of its fixture pages. */
+    public function clearPageCache(): void
+    {
+        self::remove($this->runDir . '/cache/pages');
+    }
+
+    /** Forget generated PDFs between cases that intentionally reuse a route. */
+    public function clearPdfCache(): void
+    {
+        self::remove($this->runDir . '/cache/pdf');
+    }
+
     /**
      * One request.
      *
