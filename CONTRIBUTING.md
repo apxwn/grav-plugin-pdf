@@ -146,24 +146,39 @@ Test code declares `strict_types`; the plugin itself does not.
 ## Release
 
 1. Bump `VERSION` in `pdf.php`, `version:` in `blueprints.yaml`, and the top entry in
-   `CHANGELOG.md`.
+   `CHANGELOG.md`. Refresh the version in the README's install example too.
 2. Rebuild the autoloader so the bundled `vendor/` matches `composer.lock`:
 
    ```bash
    php bin/composer.phar --working-dir=user/plugins/pdf install --no-dev --no-interaction --optimize-autoloader
    ```
 
-3. Build the archive:
+3. Run the automated tests and the checks above.
+4. Commit the changed files explicitly, then tag that commit with the bare version number:
+
+   ```bash
+   git add pdf.php blueprints.yaml CHANGELOG.md README.md build-release.sh CONTRIBUTING.md
+   git commit -m "Release X.Y.Z"   # use the version being released
+   git tag -a X.Y.Z -m "Release X.Y.Z"
+   ```
+
+   Tags in this repository are bare versions (`1.5.0`), not `v`-prefixed.
+
+5. Build the archive:
 
    ```bash
    ./build-release.sh          # writes ../grav-plugin-pdf-<version>.zip
    ```
 
-   The script ships the sources and the trimmed `vendor/`, and excludes `.git/`, `node_modules/`,
-   the test suite (`tests/`), and anything the plugin writes at runtime (`cache/`, `tmp/`,
-   `logo/` uploads).
+   The script checks that the three version declarations agree, that PHP syntax passes, that
+   the tree is clean, and that `HEAD` carries the matching tag. It then ships the sources and
+   the trimmed `vendor/`, excludes `.git/`, `.github/`, `AGENTS.md`, `node_modules/`, the test
+   suite (`tests/`) and anything the plugin writes at runtime (`cache/`, `tmp/`, `logo/`
+   uploads), and inspects the finished archive. `--allow-dirty` and `--allow-untagged` are
+   escape hatches for local experiments, not for a release build.
 
-4. Install the archive into a clean Grav and repeat the checks above.
+6. Install the archive into a clean Grav and repeat the checks above.
+7. Push the commit and tag, then publish the GitHub Release from that tag with the archive attached.
 
 ## Translations
 

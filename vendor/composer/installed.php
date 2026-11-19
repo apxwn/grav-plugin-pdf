@@ -3,7 +3,7 @@
         'name' => 'apxwn/grav-plugin-pdf',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '542a05e101b3f9b969772c0bac200c7299837284',
+        'reference' => '9a867bc9aec0b54dfc30b37641942e978aa25d53',
         'type' => 'grav-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'apxwn/grav-plugin-pdf' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '542a05e101b3f9b969772c0bac200c7299837284',
+            'reference' => '9a867bc9aec0b54dfc30b37641942e978aa25d53',
             'type' => 'grav-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

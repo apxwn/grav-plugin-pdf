@@ -35,7 +35,7 @@ nothing to build:
 
 ```bash
 cd user/plugins
-unzip ~/grav-plugin-pdf-1.3.1.zip     # creates ./pdf/
+unzip ~/grav-plugin-pdf-1.5.0.zip     # creates ./pdf/
 ```
 
 Then clear Grav's cache:

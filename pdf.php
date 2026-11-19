@@ -28,7 +28,7 @@ use Twig\TwigFunction;
  */
 class PdfPlugin extends Plugin
 {
-    public const VERSION = '1.4.0';
+    public const VERSION = '1.5.0';
 
     /** Plugin slug; also the frontmatter key and the translation namespace. */
     public const SLUG = 'pdf';
