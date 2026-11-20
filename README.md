@@ -1,6 +1,6 @@
 # PDF
 
-Generates a PDF for a page of a [Grav](https://getgrav.org) site.
+Plugin for the [Grav CMS](https://getgrav.org). Generates a PDF for a page of a [Grav](https://getgrav.org) site.
 
 Two shapes of document, chosen from the page the plugin is invoked on:
 
