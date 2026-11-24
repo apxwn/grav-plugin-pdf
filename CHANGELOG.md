@@ -4,6 +4,12 @@
 
 ### Fixed
 
+* An aborted download of a signed-in visitor's PDF no longer leaves the private render in the cache.
+  PHP aborts a script when it notices a client disconnect on the next write, which could happen inside
+  `readfile()` before the code that removed the temporary document ran. The cleanup is now registered
+  as a shutdown function before streaming, so it also covers aborts, fatal errors and timeouts; the
+  normal path still removes the file immediately through the same closure.
+
 * A build killed by PHP no longer leaves the Gotenberg engine's assembled request body behind.
   The client writes it next to the scratch document as `.<key>.<rand>.part.multipart`, and the
   sweep in `Store::prune()` matched only names ending in `.part`, so a killed build's body — the

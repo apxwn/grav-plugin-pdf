@@ -1346,10 +1346,33 @@ class Generator
      * A document that was not cached was built for this visitor alone: it gets
      * no validators (so no `304` can hand out a document from a fingerprint that
      * does not cover the viewer) and no permission to be stored anywhere, and
-     * the file is deleted once it has been read.
+     * the file is deleted once it has been read. The cleanup is registered
+     * before streaming so it also runs when PHP notices a client abort on the
+     * next write, or when the request is cut short by a fatal error or timeout.
      */
     private function send(PageInterface $page, string $file, string $key, string $engine, bool $cacheable = true): void
     {
+        $discard = null;
+        $discarded = false;
+
+        if (!$cacheable) {
+            // PHP may change the working directory inside a shutdown handler,
+            // so the path captured here is the absolute one Store produced.
+            $discard = static function () use ($file, &$discarded): void {
+                if ($discarded) {
+                    return;
+                }
+
+                $discarded = true;
+
+                if (is_file($file)) {
+                    @unlink($file);
+                }
+            };
+
+            register_shutdown_function($discard);
+        }
+
         $etag = '"' . $key . '"';
 
         if ($cacheable && trim((string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {
@@ -1384,8 +1407,8 @@ class Generator
 
         readfile($file);
 
-        if (!$cacheable) {
-            @unlink($file);
+        if ($discard !== null) {
+            $discard();
         }
 
         exit;

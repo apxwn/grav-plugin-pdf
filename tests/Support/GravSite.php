@@ -251,6 +251,36 @@ final class GravSite
     }
 
     /**
+     * Download a document and close the connection as soon as body bytes arrive.
+     *
+     * Returning `-1` from the write callback makes cURL abort the transfer, so
+     * `CURLE_WRITE_ERROR` is the expected result here. What matters is what the
+     * server leaves behind when it notices the disconnect.
+     *
+     * @param string[] $headers
+     * @return array{errno: int, bytes: int}
+     */
+    public function abortDownload(string $path, array $headers = [], float $timeout = 120.0): array
+    {
+        $responseHeaders = new \ArrayObject();
+        $handle = $this->handle($path, $headers, $responseHeaders, $timeout);
+        $bytes = 0;
+
+        curl_setopt_array($handle, [
+            CURLOPT_BUFFERSIZE => 1024,
+            CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$bytes): int {
+                $bytes += strlen($chunk);
+
+                return -1;
+            },
+        ]);
+
+        curl_exec($handle);
+
+        return ['errno' => curl_errno($handle), 'bytes' => $bytes];
+    }
+
+    /**
      * Several requests at once — the point of the concurrency tests.
      *
      * @param string[] $paths
@@ -665,6 +695,37 @@ MD);
                 . "pdf:\n  enabled: true\n---\n" . $body
             );
         }
+    }
+
+    /**
+     * A local raster big enough that a download is still streaming when the
+     * client goes away. Built without GD: the suite must not depend on it.
+     */
+    public function writeLargeImage(string $relative, int $size = 1200): string
+    {
+        $path = $this->runDir . '/' . ltrim($relative, '/');
+        self::ensure(dirname($path));
+
+        $raw = '';
+        for ($row = 0; $row < $size; $row++) {
+            $raw .= "\x00" . random_bytes($size * 3);
+        }
+
+        $png = "\x89PNG\r\n\x1a\n"
+            . self::pngChunk('IHDR', pack('NNCCCCC', $size, $size, 8, 2, 0, 0, 0))
+            . self::pngChunk('IDAT', (string) gzcompress($raw, 1))
+            . self::pngChunk('IEND', '');
+
+        if (file_put_contents($path, $png) === false) {
+            throw new RuntimeException(sprintf('Could not write the large PNG fixture at "%s".', $path));
+        }
+
+        return $path;
+    }
+
+    private static function pngChunk(string $type, string $data): string
+    {
+        return pack('N', strlen($data)) . $type . $data . pack('N', crc32($type . $data));
     }
 
     /** A tiny valid local raster used by the Gotenberg asset tests. */

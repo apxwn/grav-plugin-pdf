@@ -161,4 +161,55 @@ final class AuthenticatedCacheTest extends GravTestCase
         self::assertSame(304, $again['status'], 'The guest document is still there and still valid.');
         self::assertSame('"' . $key . '"', $again['headers']['etag'] ?? null);
     }
+
+    public function testAnAbortedSignedInDownloadLeavesNoPrivateFile(): void
+    {
+        $article = self::$site->rootDir() . '/user/pages/02.article/article.de.md';
+        $original = (string) file_get_contents($article);
+        $image = self::$site->writeLargeImage('user/pages/02.article/abort.png');
+
+        try {
+            // The raster makes the PDF big enough that the client is gone while
+            // the server is still writing it, rather than after readfile() has
+            // already returned and its normal cleanup has run.
+            file_put_contents($article, $original . "\n\n![large](/user/pages/02.article/abort.png)\n");
+            self::$site->clearPageCache();
+            self::$site->clearPdfCache();
+
+            $builds = self::$site->logCount('PDF: generated ');
+            $files = count(self::$site->pdfFiles());
+            $result = self::$site->abortDownload('/de/article.pdf', self::asMember());
+
+            self::assertSame(CURLE_WRITE_ERROR, $result['errno'], self::$site->serverLog());
+            self::assertGreaterThan(0, $result['bytes'], 'The client must have received body bytes before aborting.');
+            self::assertGreaterThan(
+                $builds,
+                self::$site->logCount('PDF: generated '),
+                'The aborted request must have reached the private build.'
+            );
+
+            $deadline = microtime(true) + 10.0;
+
+            do {
+                $left = self::$site->partFiles();
+
+                if ($left === []) {
+                    break;
+                }
+
+                usleep(100_000);
+            } while (microtime(true) < $deadline);
+
+            self::assertSame(
+                [],
+                $left,
+                'An aborted private download must not leave its render in the cache. ' . self::$site->serverLog()
+            );
+            self::assertCount($files, self::$site->pdfFiles(), 'An aborted download must not write a shared document.');
+        } finally {
+            file_put_contents($article, $original);
+            @unlink($image);
+            self::$site->clearPageCache();
+        }
+    }
 }
