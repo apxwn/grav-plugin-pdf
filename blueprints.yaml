@@ -1,7 +1,7 @@
 name: PDF
 slug: pdf
 type: plugin
-version: 1.5.0
+version: 1.5.1
 description: "Generate a PDF of a page — a single article, or a whole collection as a book."
 icon: file-pdf
 author:
