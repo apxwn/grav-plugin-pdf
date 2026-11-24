@@ -1,3 +1,6 @@
+# Local agent instructions, not part of the plugin.
+/AGENTS.md
+
 # Nothing the plugin writes at runtime belongs in the repository.
 #
 # /cache/  rendered PDFs      — now written to Grav's own cache stream, see
