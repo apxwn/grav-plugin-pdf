@@ -149,6 +149,35 @@ final class StoreTest extends TestCase
         self::assertFileExists($inFlight, 'A build that is still running must keep its scratch file.');
     }
 
+    public function testPruneRemovesDerivedScratchFilesOfKilledRequests(): void
+    {
+        $store = new Store($this->dir);
+
+        // What a renderer writes next to the scratch document: the assembled
+        // Gotenberg request body, the outline rewrite's new copy, and the HTML
+        // parts of a Gotenberg request. They carry a suffix past `.part`, so
+        // the base pattern alone would step over every one of them.
+        $body = $this->dir . '/.abc.deadbeef.part.multipart';
+        $outline = $this->dir . '/.abc.deadbeef.part.outline';
+        $part = $this->dir . '/.index-deadbeef.html.part';
+        $live = $this->dir . '/.abc.cafebabe.part.multipart';
+
+        foreach ([$body, $outline, $part, $live] as $file) {
+            file_put_contents($file, 'partial');
+        }
+
+        foreach ([$body, $outline, $part] as $file) {
+            touch($file, time() - 2 * 3600);
+        }
+
+        $store->prune($store->path('keep.php-pdf'));
+
+        self::assertFileDoesNotExist($body, 'A killed Gotenberg build leaves its request body behind.');
+        self::assertFileDoesNotExist($outline, 'A killed outline rewrite leaves its new copy behind.');
+        self::assertFileDoesNotExist($part, 'A killed Gotenberg build leaves its HTML parts behind.');
+        self::assertFileExists($live, 'A build that is still running must keep its request body.');
+    }
+
     public function testPruneRemovesLockFilesNobodyHolds(): void
     {
         $store = new Store($this->dir);

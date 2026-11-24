@@ -456,13 +456,16 @@ final class Gotenberg implements Engine
      * Write a part of the request next to the document being built.
      *
      * It lives in the cache directory, where the caller has already made sure
-     * it can write, and it is removed once the request is over.
+     * it can write, and it is removed once the request is over. The name ends
+     * in `.part` so that `Store::prune()` sweeps it up when the request was
+     * killed before it could; the upload name is the array key the caller uses
+     * (`index.html`), not this path, so the extension here costs nothing.
      *
      * @param string[] $written collected so the caller can clean up
      */
     private function write(string $file, string $kind, string $contents, array &$written): string
     {
-        $path = dirname($file) . '/.' . $kind . '-' . bin2hex(random_bytes(8)) . '.html';
+        $path = dirname($file) . '/.' . $kind . '-' . bin2hex(random_bytes(8)) . '.html.part';
 
         if (@file_put_contents($path, $contents) === false) {
             throw new \RuntimeException(sprintf(

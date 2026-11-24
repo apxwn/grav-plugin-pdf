@@ -22,13 +22,27 @@ class Store
     /**
      * How old a scratch file has to be before it counts as abandoned.
      *
-     * A `.part` file belongs to a request that is still running, and PHP does
+     * A working file belongs to a request that is still running, and PHP does
      * not run `finally` when it kills a script for exceeding `max_execution_time`
      * or when the whole process is killed, so a build that died leaves one
      * behind. This is deliberately longer than any build a site is expected to
      * allow, because deleting the scratch file of a live build would break it.
      */
     private const PART_MAX_AGE = 3600;
+
+    /**
+     * The working files a build leaves behind when PHP kills it.
+     *
+     * The scratch document is `.<key>.<rand>.part`; what a renderer derives
+     * from it keeps that name and appends a suffix — the assembled Gotenberg
+     * request body, the outline rewrite. The suffix is why the base pattern
+     * alone is not enough: `glob()` anchors at the end of the name, so
+     * `.*.part` never sees `.<key>.<rand>.part.multipart`.
+     *
+     * Neither pattern can reach a finished document: those are named
+     * `<key>.<engine>.pdf`, and a key carries no `.part` to match.
+     */
+    private const SCRATCH = ['.*.part', '.*.part.*'];
 
     /** How long a lock file may sit unused before it is removed. */
     private const LOCK_MAX_AGE = 86400;
@@ -218,7 +232,10 @@ class Store
         // Abandoned builds and locks go whether or not the cache is on: they are
         // written by a request that is no longer running, and would otherwise
         // stay until somebody cleared the cache by hand.
-        $this->collect($dir, '.*.part', self::PART_MAX_AGE);
+        foreach (self::SCRATCH as $pattern) {
+            $this->collect($dir, $pattern, self::PART_MAX_AGE);
+        }
+
         $this->collect($dir, '.*.lock', self::LOCK_MAX_AGE, true);
     }
 

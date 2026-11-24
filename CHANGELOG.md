@@ -4,6 +4,13 @@
 
 ### Fixed
 
+* A build killed by PHP no longer leaves the Gotenberg engine's assembled request body behind.
+  The client writes it next to the scratch document as `.<key>.<rand>.part.multipart`, and the
+  sweep in `Store::prune()` matched only names ending in `.part`, so a killed build's body — the
+  whole document HTML plus fonts and images — stayed until the cache was cleared by hand. The
+  sweep now covers the files derived from the scratch document (the request body, the outline
+  rewrite), and the Gotenberg HTML parts are named so that it covers them too.
+
 * Signed-in requests now take a non-blocking lock per account, across all documents. An account
   can no longer start concurrent private builds of several large books; a competing request
   gets `503` with `Retry-After`, while other accounts may build at the same time. The lock is

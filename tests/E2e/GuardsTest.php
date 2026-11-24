@@ -56,17 +56,22 @@ final class GuardsTest extends GravTestCase
         $site = self::$site;
         $site->configure(['build_timeout' => 0, 'max_items' => 0]);
 
-        // A scratch file from a request that died an hour ago. The one the test
+        // A scratch file from a request that died an hour ago, and the request
+        // body the Gotenberg client assembles beside it. The one the test
         // above left behind is younger than the sweep's one-hour threshold and
         // stays until it is old enough; this is about the sweep itself.
         $abandoned = $site->cacheDir() . '/.deadbeef.part';
+        $body = $site->cacheDir() . '/.deadbeef.part.multipart';
         file_put_contents($abandoned, 'partial');
+        file_put_contents($body, 'partial');
         touch($abandoned, time() - 2 * 3600);
+        touch($body, time() - 2 * 3600);
 
         $response = $site->get('/de/book.pdf');
 
         self::assertSame(200, $response['status'], $site->serverLog() . "\n" . $site->gravLog());
         self::assertStringStartsWith('%PDF', $response['body']);
         self::assertFileDoesNotExist($abandoned, 'The sweep after a build removes abandoned scratch files.');
+        self::assertFileDoesNotExist($body, 'The sweep after a build removes abandoned request bodies.');
     }
 }

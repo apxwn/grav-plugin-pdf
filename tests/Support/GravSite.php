@@ -344,10 +344,15 @@ final class GravSite
         return array_values(array_filter((array) glob($this->cacheDir() . '/*.pdf'), 'is_string'));
     }
 
-    /** @return string[] */
+    /**
+     * Every working file a build may leave behind: the scratch document, and
+     * the request body and HTML parts a renderer derives from it.
+     *
+     * @return string[]
+     */
     public function partFiles(): array
     {
-        return array_values(array_filter((array) glob($this->cacheDir() . '/.*.part'), 'is_string'));
+        return array_values(array_filter((array) glob($this->cacheDir() . '/.*.part*'), 'is_string'));
     }
 
     /**

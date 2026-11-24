@@ -626,8 +626,10 @@ required even when the document cache is off, and fail closed if the lock cannot
 
 A build writes to a hidden `.part` file and renames it into place, so a half-written document
 is never served and never counted as a cached one. PHP does not run a request's cleanup when it
-kills the script for exceeding its time limit, so `Store::prune()` also removes `.part` files
-older than an hour, and lock files that nothing has held for a day.
+kills the script for exceeding its time limit, so `Store::prune()` also removes the working files
+a killed build leaves behind once they are older than an hour — its `.part` scratch document,
+the Gotenberg request body assembled beside it, and the HTML parts of a Gotenberg request — and
+lock files that nothing has held for a day.
 
 `build_timeout` bounds one build: reading the entries as well as drawing them, but not sending
 the finished file, so a slow download is never cut off. PHP's own limit is restored afterwards,
