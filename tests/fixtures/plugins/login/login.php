@@ -56,8 +56,15 @@ class LoginPlugin extends Plugin
         // an object that is a UserInterface and has no storage behind it.
         // `authenticated` is deliberately not a constructor argument — the
         // class strips it.
-        $user = new User(['username' => 'fixture-viewer']);
-        $user->authenticated = $viewer === self::MEMBER;
+        $isMember = $viewer === self::MEMBER || str_starts_with($viewer, self::MEMBER . ':');
+        $username = $viewer === self::MEMBER
+            ? 'fixture-viewer'
+            : (str_starts_with($viewer, self::MEMBER . ':')
+                ? substr($viewer, strlen(self::MEMBER) + 1)
+                : 'fixture-viewer');
+
+        $user = new User(['username' => $username]);
+        $user->authenticated = $isMember;
 
         $this->grav['user'] = $user;
         $this->grav['login'] = new FakeLogin();

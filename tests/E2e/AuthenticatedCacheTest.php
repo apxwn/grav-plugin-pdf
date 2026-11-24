@@ -47,6 +47,12 @@ final class AuthenticatedCacheTest extends GravTestCase
         return array_merge(['X-PDFTest-Viewer: member'], $headers);
     }
 
+    /** @return string[] */
+    private static function asAccount(string $username): array
+    {
+        return ['X-PDFTest-Viewer: member:' . $username];
+    }
+
     public function testAGuestDocumentIsCachedAndCarriesValidators(): void
     {
         $response = self::$site->get('/de/access/open.pdf');
@@ -106,6 +112,32 @@ final class AuthenticatedCacheTest extends GravTestCase
             self::$site->logCount('not cached for a signed-in visitor'),
             'The log should say that the document was not cached.'
         );
+    }
+
+    public function testAnAccountCanOnlyHaveOnePrivateBuildAtATimeEvenWhenCacheIsDisabled(): void
+    {
+        self::$site->configure(['cache' => false]);
+        $builds = self::$site->logCount('PDF: generated ');
+        self::$site->holdAccountLock('alice');
+
+        try {
+            // The lock is account-wide: an in-progress build of any document
+            // prevents this account from starting a book build as well.
+            $alice = self::$site->get('/de/article.pdf', self::asAccount('Alice'));
+        } finally {
+            self::$site->releaseLock();
+        }
+
+        self::assertSame(503, $alice['status'], self::$site->serverLog());
+        self::assertSame('5', $alice['headers']['retry-after'] ?? null);
+        self::assertSame($builds, self::$site->logCount('PDF: generated '));
+
+        // A different account has a different lock and can proceed in parallel.
+        $bob = self::$site->get('/de/access/open.pdf', self::asAccount('bob'));
+        self::assertSame(200, $bob['status'], self::$site->serverLog());
+        self::assertStringStartsWith('%PDF', $bob['body']);
+        self::assertStringContainsString('no-store', strtolower($bob['headers']['cache-control'] ?? ''));
+        self::assertSame([], self::$site->partFiles());
     }
 
     public function testTheGuestDocumentSurvivesASignedInRequestUnchanged(): void

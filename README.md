@@ -240,7 +240,7 @@ are the article partial and the listing template:
 
 | Where | What to add |
 |---|---|
-| the article partial, under the article body | `{% if pdf.enabled|default(false) %}<a href="{{ pdf.url }}">{{ pdf.label }}</a>{% endif %}` |
+| the article partial, under the article body | `{% if pdf.enabled\|default(false) %}<a href="{{ pdf.url }}">{{ pdf.label }}</a>{% endif %}` |
 | the listing template, above the items | the same block — on a page with a collection it links to the book |
 
 ---
@@ -600,25 +600,29 @@ and answer `If-None-Match` with `304`.
 whoever asked — Twig and shortcodes can show one visitor something another must not see — so
 a signed-in request reads nothing from the disk cache, writes nothing to it, and gets
 `Cache-Control: private, no-store` with no validators. The file is deleted once it has been
-streamed. Guests share the cache, and a guest's rights are decided by the page's access rules
-alone, so a guest document can safely be handed to any guest. Access itself is checked on
-every request regardless, cache hit or not.
+streamed. One account may have only one PDF build in progress at a time, across all documents;
+other accounts can build concurrently. A second request for the same account gets `HTTP 503`
+with `Retry-After` rather than waiting or sharing the first request's output. This limit also
+applies with `cache: false`. Guests share the cache, and a guest's rights are decided by the
+page's access rules alone, so a guest document can safely be handed to any guest. Access itself
+is checked on every request regardless, cache hit or not.
 
 Generated documents live in Grav's cache stream, so `bin/grav clear-cache` empties them
 along with everything else and nothing has to be writable inside the plugin folder.
 `cache_path` moves them elsewhere; a stream, an absolute path or a Grav-root-relative path
 all work. The directory is created on demand.
 
-**One request builds a document, the others do not.** A cache miss is the expensive path, and
-after an edit every concurrent hit on the same page misses at once. The first request to take
-the lock builds; the others are answered from the newest document already on disk under that
-key — even one past `cache_ttl`, because the key is the fingerprint and the content behind it
-has not changed — or, when there is nothing to serve yet, which is the normal case right after
-an edit because the edit produced a new key, with `HTTP 503` and `Retry-After`. Nothing is
-queued, so no request is held waiting behind a build. The lock is advisory: it is not taken
-with `cache: false` (that setting asks for a fresh document per request), and it fails open
-when the cache directory cannot hold the lock file, so a filesystem without working `flock` —
-some network mounts — behaves exactly as before.
+**For guests, one request builds a document, the others do not.** A cache miss is the expensive
+path, and after an edit every concurrent hit on the same page misses at once. The first request
+to take the lock builds; the others are answered from the newest document already on disk under
+that key — even one past `cache_ttl`, because the key is the fingerprint and the content behind
+it has not changed — or, when there is nothing to serve yet, which is the normal case right
+after an edit because the edit produced a new key, with `HTTP 503` and `Retry-After`. Nothing is
+queued, so no request is held waiting behind a build. The guest lock is advisory: it is not
+taken with `cache: false` (that setting asks for a fresh document per request), and it fails
+open when the cache directory cannot hold the lock file, so a filesystem without working
+`flock` — some network mounts — behaves exactly as before. Signed-in account locks are separate,
+required even when the document cache is off, and fail closed if the lock cannot be established.
 
 A build writes to a hidden `.part` file and renames it into place, so a half-written document
 is never served and never counted as a cached one. PHP does not run a request's cleanup when it

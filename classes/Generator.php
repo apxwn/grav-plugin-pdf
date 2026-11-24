@@ -172,19 +172,32 @@ class Generator
 
         try {
             if (!$cacheable) {
-                // A document built for this visitor alone is deleted after it
-                // has been streamed, so there is nothing here for a second
-                // request to wait for: build it, and let it go.
+                // Private output must not be shared, but the same account must
+                // not be able to start several expensive builds at once. The
+                // lock is account-wide (not per document) and is held only
+                // through production, never while the finished file streams.
                 $store->prepare($file);
+                $lock = $store->accountLock($this->authenticatedAccount());
 
-                [$file, $engine] = $this->withinBudget(fn (): array => $this->produce(
-                    $router,
-                    $this->document($page, $readable, $mode),
-                    $store,
-                    $key,
-                    $engine,
-                    false
-                ));
+                if ($lock === null) {
+                    $this->grav['log']->info(
+                        'PDF: a signed-in account build is already in progress or its lock is unavailable.'
+                    );
+                    $this->busy();
+                }
+
+                try {
+                    [$file, $engine] = $this->withinBudget(fn (): array => $this->produce(
+                        $router,
+                        $this->document($page, $readable, $mode),
+                        $store,
+                        $key,
+                        $engine,
+                        false
+                    ));
+                } finally {
+                    $lock->release();
+                }
             } elseif (!$store->isFresh($file)) {
                 [$file, $engine] = $this->refresh($router, $page, $readable, $mode, $store, $key, $engine);
             }
@@ -296,6 +309,12 @@ class Generator
 
         $this->grav['log']->info(sprintf('PDF: %s is being built by another request.', $key));
 
+        $this->busy();
+    }
+
+    /** Ask the visitor to retry rather than queueing behind an active build. */
+    private function busy(): never
+    {
         $this->plain(503, $this->message(
             'PLUGIN_PDF.BUSY',
             'This document is being generated. Please try again in a moment.'
@@ -356,6 +375,23 @@ class Generator
         $user = $this->grav['user'] ?? null;
 
         return !($user instanceof UserInterface && $user->authenticated);
+    }
+
+    /**
+     * Stable account identity for the private-build lock.
+     *
+     * Grav accounts have a username. If an authenticated integration supplies
+     * no username, use one conservative shared identity rather than silently
+     * letting that request bypass the account-wide build limit.
+     */
+    private function authenticatedAccount(): string
+    {
+        $user = $this->grav['user'] ?? null;
+        $username = $user instanceof UserInterface
+            ? trim((string) $user->get('username', ''))
+            : '';
+
+        return $username !== '' ? $username : 'authenticated-user-without-username';
     }
 
     /**

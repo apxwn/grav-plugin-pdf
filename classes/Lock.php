@@ -3,7 +3,7 @@
 namespace Grav\Plugin\Pdf;
 
 /**
- * One build at a time, per document.
+ * Non-blocking file lock used to coordinate PDF builds.
  *
  * A cache miss is the expensive path — a large book is seconds of CPU and a lot
  * of memory, and the file it produces is completely determined by its name — so
@@ -29,21 +29,39 @@ final class Lock
     }
 
     /**
-     * Take a lock, or report that somebody else holds it.
+     * Take a best-effort lock, or report that somebody else holds it.
      *
      * `null` means the document is being built elsewhere right now. A file that
-     * cannot be opened — a cache directory this account cannot write to, or a
-     * filesystem without working locks — hands back a lock that holds nothing:
-     * the request then builds unguarded, exactly as it would have before, and
-     * the failure an administrator has to act on still comes from the cache
-     * directory itself (see Store::prepare()).
+     * cannot be opened, or a filesystem without working locks, hands back a
+     * lock that holds nothing. This is suitable for the guest cache lock, where
+     * a final document is still safe to publish atomically.
      */
     public static function acquire(string $file): ?self
+    {
+        return self::take($file, true);
+    }
+
+    /**
+     * Take a lock, treating an unavailable lock mechanism as contention.
+     *
+     * Private-build limits must not silently fail open: if an account lock
+     * cannot be established, the request does not start another build.
+     */
+    public static function acquireRequired(string $file): ?self
+    {
+        return self::take($file, false);
+    }
+
+    /**
+     * @param bool $failOpen Whether an unavailable lock mechanism may proceed
+     *                       with an empty lock, as the shared-cache lock does.
+     */
+    private static function take(string $file, bool $failOpen): ?self
     {
         $handle = @fopen($file, 'c');
 
         if ($handle === false) {
-            return new self(null);
+            return $failOpen ? new self(null) : null;
         }
 
         // Capture the reason without letting a warning reach the response: the
@@ -63,11 +81,10 @@ final class Lock
         if (!$locked) {
             fclose($handle);
 
-            // Normally this means another request holds the lock. A filesystem
-            // that cannot lock at all — a network mount that reports "No locks
-            // available" — must not answer 503 for ever, so that case fails open
-            // like an unopenable lock file does.
-            return self::unlockable($warning) ? new self(null) : null;
+            // Normally this means another request holds the lock. Some network
+            // filesystems report that locking is unsupported instead; only the
+            // best-effort guest lock treats that as permission to proceed.
+            return $failOpen && self::unlockable($warning) ? new self(null) : null;
         }
 
         // Keep the file young, so that Store::prune() can tell a lock that is in

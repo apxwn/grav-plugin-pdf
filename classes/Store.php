@@ -103,6 +103,20 @@ class Store
     }
 
     /**
+     * Take the build lock for one signed-in account, regardless of document.
+     *
+     * The account identifier is hashed so usernames are not written into cache
+     * filenames. This lock coordinates private builds only; it never makes a
+     * signed-in document reusable by another request.
+     */
+    public function accountLock(string $account): ?Lock
+    {
+        $key = hash('sha256', "pdf-account\0" . mb_strtolower(trim($account), 'UTF-8'));
+
+        return Lock::acquireRequired(rtrim($this->dir, '/') . '/.account-' . $key . '.lock');
+    }
+
+    /**
      * The newest complete document on disk for a key, and what produced it.
      *
      * Used while another request is building that same key: a file under a

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+* Signed-in requests now take a non-blocking lock per account, across all documents. An account
+  can no longer start concurrent private builds of several large books; a competing request
+  gets `503` with `Retry-After`, while other accounts may build at the same time. The lock is
+  held only while generating the PDF, applies even when the shared document cache is off, and
+  fails closed if the filesystem cannot establish it.
+
 ## 1.5.0 — 2026-11-19
 
 ### Security

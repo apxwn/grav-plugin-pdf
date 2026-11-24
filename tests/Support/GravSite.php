@@ -369,6 +369,20 @@ final class GravSite
         $this->lock = $handle;
     }
 
+    /** Pretend this account already has a private document build in progress. */
+    public function holdAccountLock(string $username): void
+    {
+        $key = hash('sha256', "pdf-account\0" . mb_strtolower(trim($username), 'UTF-8'));
+        $file = $this->cacheDir() . '/.account-' . $key . '.lock';
+        $handle = fopen($file, 'c');
+
+        if ($handle === false || !flock($handle, LOCK_EX)) {
+            throw new RuntimeException('Could not take the account build lock for the test.');
+        }
+
+        $this->lock = $handle;
+    }
+
     public function releaseLock(): void
     {
         if (is_resource($this->lock)) {

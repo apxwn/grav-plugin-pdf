@@ -81,6 +81,25 @@ final class LockTest extends TestCase
         self::assertDirectoryDoesNotExist($this->dir . '/missing');
     }
 
+    public function testRequiredLockFailsClosedWhenTheFileCannotBeCreated(): void
+    {
+        self::assertNull(Lock::acquireRequired($this->dir . '/missing/.account.lock'));
+        self::assertDirectoryDoesNotExist($this->dir . '/missing');
+    }
+
+    public function testRequiredLockIsExclusive(): void
+    {
+        $file = $this->dir . '/.account.lock';
+        $first = Lock::acquireRequired($file);
+
+        self::assertInstanceOf(Lock::class, $first);
+        self::assertNull(Lock::acquireRequired($file));
+
+        $first->release();
+
+        self::assertInstanceOf(Lock::class, Lock::acquireRequired($file));
+    }
+
     public function testHoldingTheLockKeepsTheFileYoung(): void
     {
         $file = $this->dir . '/.key.lock';
